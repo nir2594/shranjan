@@ -413,12 +413,13 @@
     <!-- 1. Hero Section -->
     <header class="relative h-screen w-full flex items-center justify-center overflow-hidden">
         <div class="absolute inset-0 z-0">
+            <!-- ADJUSTED: Improved mobile positioning to keep faces in frame -->
             <img src="https://lh3.googleusercontent.com/d/1Q76lB9uEdYHUTV3ipohm1PexMFICiPiq" 
                  id="hero-image"
                  onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1519741497674-611481863552?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80';"
                  alt="Niranjan and Shraddha" 
-                 class="w-full h-full object-cover"
-                 style="transform: scale(1.1); will-change: transform;">
+                 class="w-full h-full object-cover object-[50%_15%] md:object-center"
+                 style="transform: scale(1.0); will-change: transform;">
             <div class="hero-overlay absolute inset-0"></div>
         </div>
 
@@ -1252,7 +1253,8 @@
             const heroImage = document.getElementById('hero-image');
             if (heroImage) {
                 const scrollPos = window.scrollY;
-                let scale = 1.1 - (scrollPos * 0.0002);
+                // ADJUSTED: Smoother zoom starting from 1.0 to minimize cropping
+                let scale = 1.0 + (scrollPos * 0.0002);
                 if (scale < 1) scale = 1;
                 heroImage.style.transform = `scale(${scale})`;
             }
