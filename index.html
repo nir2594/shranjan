@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Niranjan & Shraddha | Wedding Invitation</title>
     
     <!-- Custom Favicon: N ❤️ S -->
@@ -34,6 +34,10 @@
                         'script': ['"Great Vibes"', 'cursive'],
                         'serif': ['"Playfair Display"', 'serif'],
                         'sans': ['"Montserrat"', 'sans-serif'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 20s linear infinite',
+                        'bounce-slow': 'bounce 3s infinite',
                     }
                 }
             }
@@ -191,6 +195,13 @@
     </script>
 
     <style>
+        /* Prevent horizontal scroll on mobile */
+        body, html {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        
+        /* Smooth scrolling */
         html { scroll-behavior: smooth; }
         
         /* New Animations for Event Corners */
@@ -412,37 +423,37 @@
         </div>
 
         <div class="relative z-10 text-center text-white px-4 fade-in-section">
-            <p class="text-xl md:text-2xl tracking-widest uppercase mb-4">We Are Getting Married</p>
-            <h1 class="font-script text-6xl md:text-8xl mb-6 text-wedding-gold drop-shadow-lg flex flex-col md:flex-row items-center justify-center gap-4">
+            <p class="text-lg md:text-2xl tracking-widest uppercase mb-4 font-light">We Are Getting Married</p>
+            <h1 class="font-script text-5xl md:text-8xl mb-6 text-wedding-gold drop-shadow-lg flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 leading-tight">
                 <span>Niranjan</span>
-                <i class="fas fa-heart pulse2 text-red-500 text-4xl md:text-6xl mx-2"></i>
+                <i class="fas fa-heart pulse2 text-red-500 text-3xl md:text-6xl mx-2"></i>
                 <span>Shraddha</span>
             </h1>
-            <div class="flex items-center justify-center gap-4 text-lg md:text-xl font-serif italic mt-4">
+            <div class="flex items-center justify-center gap-4 text-base md:text-xl font-serif italic mt-4">
                 <span>March 6th</span>
                 <span class="w-2 h-2 bg-wedding-gold rounded-full"></span>
                 <span>March 7th, 2026</span>
             </div>
 
             <!-- Countdown Timer -->
-            <div id="countdown" class="flex justify-center items-center gap-4 md:gap-8 mt-10 text-white font-serif fade-in-section">
-                <div class="flex flex-col items-center">
-                    <span class="text-3xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="days">00</span>
+            <div id="countdown" class="flex flex-wrap justify-center items-center gap-3 md:gap-8 mt-10 text-white font-serif fade-in-section">
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="days">00</span>
                     <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Days</span>
                 </div>
-                <div class="text-2xl md:text-3xl opacity-50 font-light">:</div>
-                <div class="flex flex-col items-center">
-                    <span class="text-3xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="hours">00</span>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="hours">00</span>
                     <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Hours</span>
                 </div>
-                <div class="text-2xl md:text-3xl opacity-50 font-light">:</div>
-                <div class="flex flex-col items-center">
-                    <span class="text-3xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="minutes">00</span>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="minutes">00</span>
                     <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Mins</span>
                 </div>
-                <div class="text-2xl md:text-3xl opacity-50 font-light">:</div>
-                <div class="flex flex-col items-center">
-                    <span class="text-3xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="seconds">00</span>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="seconds">00</span>
                     <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Secs</span>
                 </div>
             </div>
@@ -456,15 +467,15 @@
     </header>
 
     <!-- 2. Couple Section -->
-    <section id="couple" class="py-20 md:py-28 overflow-hidden bg-white">
+    <section id="couple" class="py-16 md:py-28 overflow-hidden bg-white">
         <div class="container mx-auto px-4">
-            <div class="text-center mb-16 fade-in-section">
+            <div class="text-center mb-12 md:mb-16 fade-in-section">
                 <h2 class="font-serif text-4xl md:text-5xl text-wedding-dark mb-4">The Happy Couple</h2>
                 <div class="w-24 h-1 bg-wedding-gold mx-auto"></div>
-                <p class="mt-4 text-gray-500 italic">"Love is not just looking at each other, it's looking in the same direction."</p>
+                <p class="mt-4 text-gray-500 italic text-sm md:text-base px-4">"Love is not just looking at each other, it's looking in the same direction."</p>
             </div>
 
-            <div class="flex flex-col md:flex-row items-center gap-12 md:gap-8">
+            <div class="flex flex-col md:flex-row items-center gap-8 md:gap-12">
                 
                 <!-- Bride Side -->
                 <div class="w-full md:w-1/2 flex flex-col items-center md:items-end text-center md:text-right slide-from-left trigger-slide">
@@ -500,14 +511,14 @@
     </section>
 
     <!-- 3. Wedding Events (Redesigned for Legibility & Theme) -->
-    <section id="events" class="py-24 bg-stone-50 relative overflow-hidden">
+    <section id="events" class="py-16 md:py-24 bg-stone-50 relative overflow-hidden">
         <!-- Decorative Background Pattern -->
         <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 20px 20px;"></div>
 
         <div class="container mx-auto px-4 relative z-10">
-            <div class="text-center mb-16 fade-in-section">
+            <div class="text-center mb-12 md:mb-16 fade-in-section">
                 <i class="fas fa-om text-4xl text-wedding-gold mb-3 opacity-80"></i>
-                <h2 class="font-serif text-5xl md:text-6xl text-wedding-dark mb-4">Wedding Itinerary</h2>
+                <h2 class="font-serif text-4xl md:text-6xl text-wedding-dark mb-4">Wedding Itinerary</h2>
                 <div class="w-32 h-1 bg-gradient-to-r from-transparent via-wedding-gold to-transparent mx-auto"></div>
                 <p class="mt-4 text-gray-500 font-serif italic text-lg">Please join us in celebrating these auspicious moments</p>
             </div>
@@ -518,14 +529,14 @@
                 <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in-section border border-gray-100 relative">
                     <!-- Day Header -->
                     <!-- CHANGED: Restored to Wedding Dark theme with Gold Accents -->
-                    <div class="bg-wedding-dark p-8 text-white relative">
+                    <div class="bg-wedding-dark p-6 md:p-8 text-white relative">
                         <div class="flex flex-col md:flex-row justify-between items-center relative z-10">
-                            <div class="text-center md:text-left">
-                                <h3 class="font-serif text-3xl tracking-wide">Friday, 6th March</h3>
-                                <p class="text-wedding-gold font-bold uppercase tracking-widest mt-1">The Beginning</p>
+                            <div class="text-center md:text-left mb-4 md:mb-0">
+                                <h3 class="font-serif text-2xl md:text-3xl tracking-wide">Friday, 6th March</h3>
+                                <p class="text-wedding-gold font-bold uppercase tracking-widest mt-1 text-sm md:text-base">The Beginning</p>
                             </div>
-                            <div class="mt-4 md:mt-0 px-6 py-2 border border-wedding-gold rounded-full bg-white/10 backdrop-blur-sm">
-                                <span class="font-mono text-xl">2026</span>
+                            <div class="px-4 py-1 md:px-6 md:py-2 border border-wedding-gold rounded-full bg-white/10 backdrop-blur-sm">
+                                <span class="font-mono text-lg md:text-xl">2026</span>
                             </div>
                         </div>
                         <!-- Accent line -->
@@ -534,11 +545,11 @@
 
                     <div class="p-6 md:p-10">
                         <!-- Event 1: Haldi -->
-                        <div class="flex flex-col md:flex-row gap-8 mb-12 border-b border-gray-100 pb-12 last:border-0 last:pb-0">
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8 mb-12 border-b border-gray-100 pb-12 last:border-0 last:pb-0">
                             <!-- Time -->
-                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start border-r border-gray-100 pr-6">
-                                <span class="text-3xl font-bold text-gray-800">04:00</span>
-                                <span class="text-lg text-gray-500 font-bold uppercase">PM</span>
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">04:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">PM</span>
                             </div>
                             
                             <!-- Content -->
@@ -554,32 +565,32 @@
 
                                 <div class="flex items-center gap-4 mb-4 relative z-10">
                                     <!-- CHANGED: Icon bg to yellow-200, icon text to yellow-700 -->
-                                    <div class="w-12 h-12 rounded-full bg-yellow-200 flex items-center justify-center text-yellow-700 shadow-sm">
-                                        <i class="fas fa-sun text-2xl"></i>
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-yellow-200 flex items-center justify-center text-yellow-700 shadow-sm shrink-0">
+                                        <i class="fas fa-sun text-xl md:text-2xl"></i>
                                     </div>
-                                    <h4 class="font-serif text-3xl text-wedding-dark">Haldi Ceremony</h4>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Haldi Ceremony</h4>
                                 </div>
                                 
-                                <p class="text-gray-600 text-lg mb-6 leading-relaxed relative z-10">
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
                                     A joyous afternoon of turmeric, laughter, and blessings. Get ready to be covered in the color of love!
                                 </p>
                                 
                                 <!-- Dress Code Box -->
                                 <!-- CHANGED: Border to yellow-500 -->
-                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-5 border-l-4 border-yellow-500 relative z-10 shadow-sm">
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-yellow-500 relative z-10 shadow-sm">
                                     <!-- CHANGED: Text to yellow-900 -->
-                                    <p class="text-sm font-bold text-yellow-900 uppercase tracking-wide mb-3 flex items-center">
+                                    <p class="text-xs md:text-sm font-bold text-yellow-900 uppercase tracking-wide mb-3 flex items-center">
                                         <i class="fas fa-tshirt mr-2"></i> Dress Code: Bright & Vivid
                                     </p>
-                                    <div class="flex flex-wrap gap-6 text-base">
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
                                         <!-- CHANGED: Hover text to yellow-700 -->
                                         <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-yellow-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Ladies: Yellow / Mustard
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
                                         <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-yellow-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Gents: Yellow Kurtas
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
@@ -589,11 +600,11 @@
                         </div>
 
                         <!-- Event 2: Sangeet -->
-                        <div class="flex flex-col md:flex-row gap-8">
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
                             <!-- Time -->
-                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start border-r border-gray-100 pr-6">
-                                <span class="text-3xl font-bold text-gray-800">07:00</span>
-                                <span class="text-lg text-gray-500 font-bold uppercase">PM</span>
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">07:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">PM</span>
                             </div>
                             
                             <!-- Content -->
@@ -607,29 +618,29 @@
                                 </div>
 
                                 <div class="flex items-center gap-4 mb-4 relative z-10">
-                                    <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-sm">
-                                        <i class="fas fa-music text-2xl"></i>
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-sm shrink-0">
+                                        <i class="fas fa-music text-xl md:text-2xl"></i>
                                     </div>
-                                    <h4 class="font-serif text-3xl text-wedding-dark">Sangeet Night</h4>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Sangeet Night</h4>
                                 </div>
                                 
-                                <p class="text-gray-600 text-lg mb-6 leading-relaxed relative z-10">
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
                                     Put on your dancing shoes! An evening filled with music, performances, and endless celebration.
                                 </p>
                                 
                                 <!-- Dress Code Box -->
-                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-5 border-l-4 border-purple-500 relative z-10 shadow-sm">
-                                    <p class="text-sm font-bold text-purple-900 uppercase tracking-wide mb-3 flex items-center">
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-purple-500 relative z-10 shadow-sm">
+                                    <p class="text-xs md:text-sm font-bold text-purple-900 uppercase tracking-wide mb-3 flex items-center">
                                         <i class="fas fa-user-tie mr-2"></i> Dress Code: Indo-Western Glam
                                     </p>
-                                    <div class="flex flex-wrap gap-6 text-base">
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
                                         <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-purple-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Ladies: Lehengas / Gowns
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
                                         <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-purple-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Gents: Mirror Work Kurta Pajama
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
@@ -643,14 +654,14 @@
                 <!-- Day 2 Card -->
                 <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in-section border border-gray-100 relative">
                     <!-- Day Header -->
-                    <div class="bg-wedding-accent p-8 text-white relative">
+                    <div class="bg-wedding-accent p-6 md:p-8 text-white relative">
                         <div class="flex flex-col md:flex-row justify-between items-center relative z-10">
-                            <div class="text-center md:text-left">
-                                <h3 class="font-serif text-3xl tracking-wide">Saturday, 7th March</h3>
-                                <p class="text-white/90 font-bold uppercase tracking-widest mt-1">The Wedding</p>
+                            <div class="text-center md:text-left mb-4 md:mb-0">
+                                <h3 class="font-serif text-2xl md:text-3xl tracking-wide">Saturday, 7th March</h3>
+                                <p class="text-white/90 font-bold uppercase tracking-widest mt-1 text-sm md:text-base">The Wedding</p>
                             </div>
-                            <div class="mt-4 md:mt-0 px-6 py-2 border border-white/50 rounded-full bg-white/10 backdrop-blur-sm">
-                                <span class="font-mono text-xl">2026</span>
+                            <div class="px-4 py-1 md:px-6 md:py-2 border border-white/50 rounded-full bg-white/10 backdrop-blur-sm">
+                                <span class="font-mono text-lg md:text-xl">2026</span>
                             </div>
                         </div>
                         <!-- Accent line -->
@@ -659,11 +670,11 @@
 
                     <div class="p-6 md:p-10">
                         <!-- Event 3: Rituals -->
-                        <div class="flex flex-col md:flex-row gap-8 mb-12 border-b border-gray-100 pb-12 last:border-0 last:pb-0">
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8 mb-12 border-b border-gray-100 pb-12 last:border-0 last:pb-0">
                             <!-- Time -->
-                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start border-r border-gray-100 pr-6">
-                                <span class="text-3xl font-bold text-gray-800">07:00</span>
-                                <span class="text-lg text-gray-500 font-bold uppercase">AM</span>
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">07:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">AM</span>
                             </div>
                             
                             <!-- Content -->
@@ -677,29 +688,29 @@
                                 </div>
 
                                 <div class="flex items-center gap-4 mb-4 relative z-10">
-                                    <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shadow-sm">
-                                        <i class="fas fa-fire text-2xl"></i>
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shadow-sm shrink-0">
+                                        <i class="fas fa-fire text-xl md:text-2xl"></i>
                                     </div>
-                                    <h4 class="font-serif text-3xl text-wedding-dark">Vedic Rituals</h4>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Vedic Rituals</h4>
                                 </div>
                                 
-                                <p class="text-gray-600 text-lg mb-6 leading-relaxed relative z-10">
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
                                     Sacred morning ceremonies to invoke blessings. A spiritual start to our new journey together.
                                 </p>
                                 
                                 <!-- Dress Code Box -->
-                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-5 border-l-4 border-orange-500 relative z-10 shadow-sm">
-                                    <p class="text-sm font-bold text-orange-900 uppercase tracking-wide mb-3 flex items-center">
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-orange-500 relative z-10 shadow-sm">
+                                    <p class="text-xs md:text-sm font-bold text-orange-900 uppercase tracking-wide mb-3 flex items-center">
                                         <i class="fas fa-praying-hands mr-2"></i> Dress Code: Traditional
                                     </p>
-                                    <div class="flex flex-wrap gap-6 text-base">
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
                                         <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-orange-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Ladies: Paithani / Silk Saree
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
                                         <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-orange-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Gents: Kurta Dhoti / Waistcoat
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
@@ -709,11 +720,11 @@
                         </div>
 
                         <!-- Event 4: Wedding -->
-                        <div class="flex flex-col md:flex-row gap-8">
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
                             <!-- Time -->
-                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start border-r border-gray-100 pr-6">
-                                <span class="text-3xl font-bold text-gray-800">11:00</span>
-                                <span class="text-lg text-gray-500 font-bold uppercase">AM</span>
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">11:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">AM</span>
                             </div>
                             
                             <!-- Content -->
@@ -727,29 +738,29 @@
                                 </div>
 
                                 <div class="flex items-center gap-4 mb-4 relative z-10">
-                                    <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-sm">
-                                        <i class="fas fa-crown text-2xl"></i>
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-sm shrink-0">
+                                        <i class="fas fa-crown text-xl md:text-2xl"></i>
                                     </div>
-                                    <h4 class="font-serif text-3xl text-wedding-dark">Mangalashtak & Varmala</h4>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Mangalashtak & Varmala</h4>
                                 </div>
                                 
-                                <p class="text-gray-600 text-lg mb-6 leading-relaxed relative z-10">
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
                                     The auspicious moment where two souls become one. Witness the vows and the beginning of forever.
                                 </p>
                                 
                                 <!-- Dress Code Box -->
-                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-5 border-l-4 border-red-500 relative z-10 shadow-sm">
-                                    <p class="text-sm font-bold text-red-900 uppercase tracking-wide mb-3 flex items-center">
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-red-500 relative z-10 shadow-sm">
+                                    <p class="text-xs md:text-sm font-bold text-red-900 uppercase tracking-wide mb-3 flex items-center">
                                         <i class="fas fa-heart mr-2"></i> Dress Code: Royal Traditional
                                     </p>
-                                    <div class="flex flex-wrap gap-6 text-base">
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
                                         <a href="https://www.pinterest.com/niranjan2594/mangalasthak-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-red-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Ladies: Heavy Silk Sarees
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
                                         <a href="https://www.pinterest.com/niranjan2594/mangalashtak-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-red-700 transition font-medium group">
-                                            <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
                                             Gents: Modi jacket, kurta jacket
                                             <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
                                         </a>
@@ -765,7 +776,7 @@
     </section>
 
     <!-- 4. Instagram Section -->
-    <section class="py-24 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-y border-gray-200 overflow-hidden relative">
+    <section class="py-16 md:py-24 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-y border-gray-200 overflow-hidden relative">
         
         <!-- Animated Background Blobs -->
         <div class="absolute top-0 left-0 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -773,7 +784,7 @@
         <div class="absolute -bottom-32 left-20 w-64 h-64 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
 
         <div class="container mx-auto px-4 relative z-10">
-            <div class="flex flex-col md:flex-row items-center justify-center gap-16">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-16">
                 
                 <!-- Creative: 3D Floating Card (No Phone Frame) -->
                 <div class="w-full md:w-1/3 max-w-[280px] perspective-1000 relative group">
@@ -822,12 +833,12 @@
                         FOLLOW OUR JOURNEY
                     </div>
                     
-                    <h2 class="font-serif text-5xl md:text-6xl text-wedding-dark mb-6 leading-tight">
+                    <h2 class="font-serif text-4xl md:text-6xl text-wedding-dark mb-6 leading-tight">
                         Follow <br>
                         <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500">@shranjan.stories</span>
                     </h2>
                     
-                    <p class="text-lg text-gray-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
+                    <p class="text-base md:text-lg text-gray-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
                         We are documenting every step of our forever! From candid bloopers to the magical "I Do", don't miss a single moment.
                     </p>
                     
@@ -884,7 +895,7 @@
     </section>
 
     <!-- 5. Guest Photo Upload Section -->
-    <section class="py-20 bg-wedding-dark text-white relative overflow-hidden">
+    <section class="py-16 md:py-20 bg-wedding-dark text-white relative overflow-hidden">
         <!-- Decorative background elements -->
         <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
              <i class="fas fa-camera absolute top-10 right-10 text-6xl transform rotate-12"></i>
@@ -929,7 +940,7 @@
                         Your Lens,<br> Our Love Story
                     </h2>
                     
-                    <p class="text-xl text-gray-300 mb-8 leading-relaxed ml-auto md:ml-20">
+                    <p class="text-lg md:text-xl text-gray-300 mb-8 leading-relaxed ml-auto md:ml-20">
                         Did you snap a candid moment? A funny expression? Or a beautiful shot? <br>
                         We see the wedding through our eyes, but we'd <em>love</em> to see it through yours!
                     </p>
@@ -957,7 +968,7 @@
     </section>
 
     <!-- 6. Interactive Engagement Gallery -->
-    <section id="gallery" class="py-20 bg-white">
+    <section id="gallery" class="py-16 md:py-20 bg-white">
         <div class="container mx-auto px-4 text-center">
             <div class="fade-in-section mb-12">
                 <h2 class="font-serif text-4xl text-wedding-dark mb-4">Moments to Cherish</h2>
@@ -1024,7 +1035,7 @@
     </section>
 
     <!-- 7. NEW Video Section -->
-    <section class="py-20 bg-black text-white text-center">
+    <section class="py-16 md:py-20 bg-black text-white text-center">
         <div class="container mx-auto px-4">
              <div class="fade-in-section mb-10">
                 <h2 class="font-serif text-4xl text-wedding-gold mb-4">Our Story in Motion</h2>
@@ -1047,7 +1058,7 @@
     </section>
 
     <!-- 8. Guestbook Section (Moved) -->
-    <section class="py-12 bg-wedding-gold bg-opacity-10">
+    <section class="py-12 md:py-20 bg-wedding-gold bg-opacity-10">
         <div class="container mx-auto px-4 text-center">
             <div class="fade-in-section max-w-4xl mx-auto mb-8">
                 <i class="fas fa-magic text-wedding-gold text-2xl mb-2"></i>
@@ -1129,7 +1140,7 @@
     </section>
 
     <!-- 9. Location Section (Moved) -->
-    <section id="location" class="py-20 bg-stone-100">
+    <section id="location" class="py-16 md:py-20 bg-stone-100">
         <div class="container mx-auto px-4">
             <div class="text-center mb-12 fade-in-section">
                 <h2 class="font-serif text-4xl text-wedding-dark mb-4">The Venue</h2>
@@ -1138,7 +1149,7 @@
             </div>
 
             <div class="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto">
-                <div class="w-full md:w-2/3 shadow-xl rounded-lg overflow-hidden fade-in-section h-96">
+                <div class="w-full md:w-2/3 shadow-xl rounded-lg overflow-hidden fade-in-section h-64 md:h-96">
                     <iframe
                         width="100%" height="100%" frameborder="0" style="border:0"
                         src="https://maps.google.com/maps?q=GMK%20Banquets%20and%20Lawns%2C%20Ravet%2C%20Pune&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen>
@@ -1313,8 +1324,8 @@
             btn.disabled = true;
 
             const systemPrompt = `You are a warm, funny, and 'Desi' wedding guest at an Indian wedding. 
-            Mix English with a little Hindi/Marathi. dont add astrix on words just speak normally.
-            Context: Niranjan & Shraddha's wedding in Pune. Niranjan is from Pune, Shraddha is from Mumbai.'
+            Mix English with a little Hindi/Marathi slang like 'Arre', 'Badhai Ho', 'Mast', 'Ek Number'. 
+            Context: Niranjan & Shraddha's wedding in Pune. 
             Tone: ${tone}. 
             Keep it short (under 40 words).`;
             
@@ -1468,8 +1479,7 @@
 
         function startCountdown() {
             // Target Date: March 6, 2026
-            // Using ISO format is safer for cross-browser compatibility
-            const weddingDate = new Date("2026-03-06T00:00:00").getTime();
+            const weddingDate = new Date("March 6, 2026 00:00:00").getTime();
 
             const x = setInterval(function() {
                 const now = new Date().getTime();
@@ -1477,8 +1487,7 @@
 
                 if (distance < 0) {
                     clearInterval(x);
-                    const container = document.getElementById("countdown");
-                    if (container) container.innerHTML = "<div class='text-2xl font-serif text-wedding-gold'>Happily Married! ❤️</div>";
+                    document.getElementById("countdown").innerHTML = "<div class='text-2xl font-serif text-wedding-gold'>Happily Married! ❤️</div>";
                     return;
                 }
 
@@ -1487,15 +1496,10 @@
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-                const dayEl = document.getElementById("days");
-                const hourEl = document.getElementById("hours");
-                const minEl = document.getElementById("minutes");
-                const secEl = document.getElementById("seconds");
-
-                if (dayEl) dayEl.innerText = days < 10 ? "0" + days : days;
-                if (hourEl) hourEl.innerText = hours < 10 ? "0" + hours : hours;
-                if (minEl) minEl.innerText = minutes < 10 ? "0" + minutes : minutes;
-                if (secEl) secEl.innerText = seconds < 10 ? "0" + seconds : seconds;
+                document.getElementById("days").innerText = days < 10 ? "0" + days : days;
+                document.getElementById("hours").innerText = hours < 10 ? "0" + hours : hours;
+                document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
+                document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
             }, 1000);
         }
 
