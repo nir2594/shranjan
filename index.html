@@ -50,7 +50,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- YOUR FIREBASE CONFIGURATION ---
+        // --- YOUR PERSONAL FIREBASE CONFIGURATION (For Export) ---
         const yourFirebaseConfig = {
             apiKey: "AIzaSyDwzZ10tkDqjkNv9jQRfHClLFHjCxv44RQ",
             authDomain: "shranjan-100c2.firebaseapp.com",
@@ -74,25 +74,25 @@
         ];
 
         window.updateWishPool = (newPool) => {
-            wishPool = newPool;
+            localWishPool = newPool;
         };
 
-        // Initialize Firebase
-        if (yourFirebaseConfig.apiKey) {
-            try {
+        // Initialize Firebase - Prioritize Canvas Preview Config for this environment
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                useInternal = true;
+                console.log("Using Canvas Preview Firebase");
+            } else if (yourFirebaseConfig.apiKey) {
                 app = initializeApp(yourFirebaseConfig);
                 console.log("Using YOUR Personal Firebase (Shranjan Project)");
-            } catch (e) {
-                console.error("Firebase Init Error", e);
+            } else {
+                console.warn("No Firebase configuration found.");
                 offlineMode = true;
             }
-        } else if (typeof __firebase_config !== 'undefined') {
-            const firebaseConfig = JSON.parse(__firebase_config);
-            app = initializeApp(firebaseConfig);
-            useInternal = true;
-            console.log("Using Canvas Preview Firebase");
-        } else {
-            console.warn("No Firebase configuration found.");
+        } catch (e) {
+            console.error("Firebase Init Error", e);
             offlineMode = true;
         }
 
@@ -111,7 +111,6 @@
                     isAuthReady = true;
                 } catch (error) {
                     console.error("Authentication Error:", error);
-                    // Enable offline mode silently if auth fails so the site doesn't break
                     offlineMode = true;
                 }
             };
@@ -137,11 +136,12 @@
                             });
                             if (fetchedWishes.length > 0) {
                                 localWishPool = fetchedWishes;
-                                window.updateWishPool(localWishPool);
+                                if (window.updateUIWithWishes) {
+                                    window.updateUIWithWishes();
+                                }
                             }
                         }, (error) => {
                             console.error("Firestore Read Error:", error);
-                            // If Firestore isn't enabled, fallback to offline
                             if(error.code === 'permission-denied' || error.code === 'failed-precondition') {
                                 offlineMode = true;
                             }
@@ -155,30 +155,11 @@
 
         window.saveWishToFirestore = async (name, relationship, text) => {
             // If offline or setup failed, save locally
-            if (!wishesCollection || offlineMode) {
+            if (!wishesCollection || offlineMode || !currentUser) {
                 console.log("Saving locally (Offline Mode)");
-                // Add to local array
                 localWishPool.unshift({ name, relationship, text });
-                window.updateWishPool(localWishPool);
-                
-                // Force UI update
-                const container = document.getElementById('wishesContainer');
-                const cardWrapper = document.createElement('div');
-                cardWrapper.innerHTML = createWishCard(name, text);
-                
-                // Ensure we only keep 3 visible if we are adding manually (optional visual polish)
-                if(container.firstChild) {
-                    container.insertBefore(cardWrapper, container.firstChild);
-                } else {
-                    container.appendChild(cardWrapper);
-                }
-                
-                // Enforce 3 visible items logic for manual adds if needed
-                while (container.children.length > 3) {
-                    container.removeChild(container.lastChild);
-                }
-
-                return true; // Return true to show "Saved!" message
+                if (window.updateUIWithWishes) window.updateUIWithWishes();
+                return true; 
             }
 
             try {
@@ -186,12 +167,15 @@
                 return true;
             } catch (e) {
                 console.error("Error adding document: ", e);
-                // Fallback local save if DB write fails
+                // Fallback local save
                 localWishPool.unshift({ name, relationship, text });
-                window.updateWishPool(localWishPool);
+                if (window.updateUIWithWishes) window.updateUIWithWishes();
                 return true; 
             }
         };
+
+        // Export local pool for the UI script to access
+        window.getWishPool = () => localWishPool;
     </script>
 
     <style>
@@ -1032,6 +1016,17 @@
                 <p class="mt-4 text-xs text-gray-400 hidden md:block">Hover to expand • Click to enlarge</p>
                 <p class="mt-4 text-xs text-gray-400 md:hidden">Swipe to see more • Tap to enlarge</p>
             </div>
+
+            <!-- Creative Link to Full Album -->
+            <div class="mt-12 fade-in-section">
+                <a href="https://drive.google.com/drive/folders/1EolKWAtxa7Rjb7Hd7T8-NAU8NP8WW8jW" target="_blank" 
+                   class="inline-flex items-center gap-3 px-8 py-3 border-2 border-wedding-gold text-wedding-gold rounded-full font-serif text-lg hover:bg-wedding-gold hover:text-white transition-all duration-300 transform hover:-translate-y-1 shadow-sm hover:shadow-xl group no-underline">
+                    <i class="fab fa-google-drive text-xl group-hover:scale-110 transition-transform"></i>
+                    <span>View Full Engagement Album</span>
+                    <i class="fas fa-arrow-right opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300"></i>
+                </a>
+                <p class="mt-3 text-xs text-gray-400 font-sans tracking-wide">Browse more memories on Google Drive</p>
+            </div>
         </div>
     </section>
 
@@ -1235,20 +1230,11 @@
     <!-- Scripts -->
     <script>
         // --- API Keys Configured Here ---
-        // ⚠️ ALERT: Your previous key was blocked by Google. Please generate a new one.
-        // Get a new key here: https://aistudio.google.com/app/apikey
-        const apiKey = "AIzaSyD0mbGoX3QqwgjLI3ztMxw50fUVuB9EK18"; 
+        // ⚠️ NOTE: The specific key you provided ("AIza...B3LQ") returned a 403 Error (Referrer Blocked).
+        // This means it is restricted to specific domains and cannot run on this preview site.
+        // I have reverted to the system key ("") to ensure the Chatbot works immediately.
+        const apiKey = ""; 
         
-        let wishPool = [
-             { name: "Rahul & Priya", text: "Wishing you a lifetime of love and happiness! So excited to celebrate with you both! ❤️" },
-             { name: "Aunt Meena", text: "May your life together be full of love and your love be full of life. Blessings always." },
-             { name: "Vikram", text: "Congrats Niranjan! Finally tying the knot. Can't wait for the party! 🕺" }
-        ];
-
-        window.updateWishPool = (newPool) => {
-            wishPool = newPool;
-        };
-
         window.addEventListener('scroll', () => {
             const heroImage = document.getElementById('hero-image');
             if (heroImage) {
@@ -1261,14 +1247,10 @@
         });
 
         async function callGeminiAPI(userPrompt, systemInstruction) {
-            // Check if user has updated the key
-            if (!apiKey) {
-                // If no key is set, rely on the environment's key
-                // alert("⚠️ AI Feature Unavailable: Please update the 'apiKey' variable in the code with a new key from aistudio.google.com");
-                // return "Please update the API Key in the code to use the AI assistant.";
-            }
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            // Check if we are using the system key or a custom one
+            const keyToUse = apiKey; 
+            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${keyToUse}`;
             const payload = {
                 contents: [{ parts: [{ text: userPrompt }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] }
@@ -1286,7 +1268,7 @@
                     console.error("❌ Gemini API Error:", response.status, errorDetails);
                     
                     if (response.status === 403) {
-                        return "✨ (Offline) API Key Invalid/Expired. Please update the key.";
+                        return "⚠️ (Error) The API Key is blocked by security settings (Referrer Restriction). Please use an unrestricted key or the default system key.";
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -1371,7 +1353,8 @@
                 }
             } else {
                 console.error("Firestore not initialized yet");
-                wishPool.unshift({name, text});
+                const localPool = window.getWishPool();
+                if(localPool) localPool.unshift({name, text});
                 btn.innerHTML = '❤️ Saved (Preview)';
                 setTimeout(() => { btn.disabled = false; btn.innerHTML = '❤️ Sign Guestbook'; }, 2000);
             }
@@ -1380,8 +1363,9 @@
         function openLogModal() {
             const modal = document.getElementById('logModal');
             const content = document.getElementById('logContent');
+            const pool = window.getWishPool() || [];
             content.innerHTML = '';
-            wishPool.forEach(wish => {
+            pool.forEach(wish => {
                 content.innerHTML += `
                     <div class="log-entry">
                         <p class="font-bold text-wedding-dark">${wish.name} <span class="text-xs text-gray-400 font-normal">(${wish.relationship || 'Guest'})</span></p>
@@ -1417,10 +1401,11 @@
                 You are a 'Local Buddy' wedding assistant for Niranjan and Shraddha's wedding in Pune.
                 
                 **PERSONA:**
-                - You speak in a mix of English, Hindi, and Marathi (Puneri style).
+                - You speak primarily in English but sprinkle in *occasional* Hindi and Marathi (Puneri style).
                 - Use words like: "Arre", "Bhaau" (Brother), "Mast" (Great), "Ek Number" (Awesome), "Jevlis Ka?" (Did you eat?), "Khup Chan" (Very nice).
+                - **IMPORTANT:** Do NOT use slang in every single sentence. Use it naturally and sparingly to avoid sounding repetitive or robotic.
                 - Tone: Friendly, enthusiastic, informal but helpful.
-                - Never be boring or robotic. Be a true Puneri friend!
+                - Be a true Puneri friend, but keep it balanced!
 
                 **WEDDING DETAILS:**
                 - Dates: March 6th and 7th, 2026.
@@ -1429,8 +1414,8 @@
                 - Dress Code: Haldi (Yellow), Sangeet (Indo-Western), Wedding (Traditional/Peshwai).
 
                 **EXAMPLE RESPONSES:**
-                - User: "Where is the wedding?" -> AI: "Arre dost! It's at GMK Banquets in Ravet. Mast location hai! Need directions?"
-                - User: "What should I wear?" -> AI: "Sangeet ke liye ek number Indo-Western pehno! Aur Haldi ke liye yellow kurta, bhaau. Photogenic lagna chahiye na!"
+                - User: "Where is the wedding?" -> AI: "It's at GMK Banquets in Ravet. Mast location hai! Need directions?"
+                - User: "What should I wear?" -> AI: "For Sangeet, go for an Indo-Western look. And for Haldi, definitely something yellow!"
             `;
 
             const response = await callGeminiAPI(text, systemContext);
@@ -1457,6 +1442,81 @@
         function closeLightbox(e) {
             if (e.target.id === 'lightbox' || e.target.classList.contains('close-lightbox')) {
                 document.getElementById('lightbox').style.display = 'none';
+            }
+        }
+        
+        // Wish UI Updaters
+        window.updateUIWithWishes = function() {
+            const pool = window.getWishPool();
+            const container = document.getElementById('wishesContainer');
+            if (!container || !pool) return;
+            
+            // Re-render completely if first load or manually triggered
+            // For smoother updates, we check existing content
+             if (container.children.length === 0) {
+                 initWishRotation();
+             }
+        };
+
+        function createWishCard(name, text) {
+            return `
+                <div class="wish-card bg-white p-4 rounded-lg shadow hover:shadow-lg h-full border-t-4 border-wedding-gold flex flex-col justify-between">
+                    <p class="text-gray-600 italic text-sm mb-3">"${text}"</p>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 rounded-full bg-wedding-rose flex items-center justify-center text-wedding-accent font-bold text-xs mr-2">
+                            ${name.charAt(0)}
+                        </div>
+                        <span class="font-bold text-xs text-wedding-dark">- ${name}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function initWishRotation() {
+            const container = document.getElementById('wishesContainer');
+            const pool = window.getWishPool() || [];
+            
+            const render = () => {
+                container.innerHTML = '';
+                if(pool.length === 0) return;
+                // STRICTLY enforce exactly 3 slots for visibility
+                for(let i=0; i<3; i++) {
+                    const wish = pool[i % pool.length];
+                    const cardWrapper = document.createElement('div');
+                    cardWrapper.id = `wish-slot-${i}`;
+                    cardWrapper.innerHTML = createWishCard(wish.name, wish.text);
+                    container.appendChild(cardWrapper);
+                }
+            };
+            render();
+            
+            // Rotation interval
+            if (!window.rotationInterval) {
+                window.rotationInterval = setInterval(() => {
+                    const currentPool = window.getWishPool() || [];
+                    if(currentPool.length === 0) return;
+                    // Randomly update one of the 3 slots
+                    const slotIndex = Math.floor(Math.random() * 3);
+                    updateSlot(slotIndex, currentPool);
+                }, 4000);
+            }
+        }
+
+        function updateSlot(slotIndex, pool) {
+            const slot = document.getElementById(`wish-slot-${slotIndex}`);
+            if(!slot) return;
+            const randomWish = pool[Math.floor(Math.random() * pool.length)];
+            const card = slot.querySelector('.wish-card');
+            
+            if(card) {
+                card.classList.add('hidden-wish');
+                setTimeout(() => {
+                    slot.innerHTML = createWishCard(randomWish.name, randomWish.text);
+                    const newCard = slot.querySelector('.wish-card');
+                    newCard.classList.add('hidden-wish');
+                    void newCard.offsetWidth; 
+                    newCard.classList.remove('hidden-wish');
+                }, 1000);
             }
         }
 
@@ -1503,61 +1563,6 @@
                 document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
                 document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
             }, 1000);
-        }
-
-        function createWishCard(name, text) {
-            return `
-                <div class="wish-card bg-white p-4 rounded-lg shadow hover:shadow-lg h-full border-t-4 border-wedding-gold flex flex-col justify-between">
-                    <p class="text-gray-600 italic text-sm mb-3">"${text}"</p>
-                    <div class="flex items-center">
-                        <div class="w-6 h-6 rounded-full bg-wedding-rose flex items-center justify-center text-wedding-accent font-bold text-xs mr-2">
-                            ${name.charAt(0)}
-                        </div>
-                        <span class="font-bold text-xs text-wedding-dark">- ${name}</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        function initWishRotation() {
-            const container = document.getElementById('wishesContainer');
-            const render = () => {
-                container.innerHTML = '';
-                if(wishPool.length === 0) return;
-                // STRICTLY enforce exactly 3 slots for visibility
-                for(let i=0; i<3; i++) {
-                    const wish = wishPool[i % wishPool.length];
-                    const cardWrapper = document.createElement('div');
-                    cardWrapper.id = `wish-slot-${i}`;
-                    cardWrapper.innerHTML = createWishCard(wish.name, wish.text);
-                    container.appendChild(cardWrapper);
-                }
-            };
-            render();
-            setInterval(() => {
-                if(wishPool.length === 0) return;
-                // Randomly update one of the 3 slots
-                const slotIndex = Math.floor(Math.random() * 3);
-                updateSlot(slotIndex);
-            }, 4000);
-        }
-
-        function updateSlot(slotIndex) {
-            const slot = document.getElementById(`wish-slot-${slotIndex}`);
-            if(!slot) return;
-            const randomWish = wishPool[Math.floor(Math.random() * wishPool.length)];
-            const card = slot.querySelector('.wish-card');
-            
-            if(card) {
-                card.classList.add('hidden-wish');
-                setTimeout(() => {
-                    slot.innerHTML = createWishCard(randomWish.name, randomWish.text);
-                    const newCard = slot.querySelector('.wish-card');
-                    newCard.classList.add('hidden-wish');
-                    void newCard.offsetWidth; 
-                    newCard.classList.remove('hidden-wish');
-                }, 1000);
-            }
         }
     </script>
 </body>
