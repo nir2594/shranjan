@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Niranjan & Shraddha | Wedding Invitation</title>
     
+    <!-- Custom Favicon: N ❤️ S -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='white' stroke='%23D4AF37' stroke-width='4'/%3E%3Ctext x='50' y='58' font-family='serif' font-weight='bold' font-size='35' text-anchor='middle' fill='%23D4AF37'%3EN %3Ctspan fill='%23C0392B'%3E%E2%99%A5%3C/tspan%3E S%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,6 +34,10 @@
                         'script': ['"Great Vibes"', 'cursive'],
                         'serif': ['"Playfair Display"', 'serif'],
                         'sans': ['"Montserrat"', 'sans-serif'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 20s linear infinite',
+                        'bounce-slow': 'bounce 3s infinite',
                     }
                 }
             }
@@ -43,62 +50,169 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'wedding-app';
+        // --- YOUR PERSONAL FIREBASE CONFIGURATION (For Export) ---
+        const yourFirebaseConfig = {
+            apiKey: "AIzaSyDwzZ10tkDqjkNv9jQRfHClLFHjCxv44RQ",
+            authDomain: "shranjan-100c2.firebaseapp.com",
+            projectId: "shranjan-100c2",
+            storageBucket: "shranjan-100c2.firebasestorage.app",
+            messagingSenderId: "733304394682",
+            appId: "1:733304394682:web:20d4002581dc6e7dbec383"
+        };
 
+        // --- LOGIC TO SWITCH BETWEEN PREVIEW AND YOUR DATABASE ---
+        let app, auth, db, wishesCollection;
         let currentUser = null;
-        let wishesCollection = null;
+        let useInternal = false;
+        let isAuthReady = false;
+        let offlineMode = false;
+        
         let localWishPool = [
             { name: "Rahul & Priya", text: "Wishing you a lifetime of love and happiness! So excited to celebrate with you both! ❤️" },
             { name: "Aunt Meena", text: "May your life together be full of love and your love be full of life. Blessings always." },
             { name: "Vikram", text: "Congrats Niranjan! Finally tying the knot. Can't wait for the party! 🕺" }
         ];
 
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                 await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                 await signInAnonymously(auth);
-            }
+        window.updateWishPool = (newPool) => {
+            localWishPool = newPool;
         };
-        initAuth();
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                wishesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'wishes');
-                const q = query(wishesCollection, orderBy('timestamp', 'desc'));
-                onSnapshot(q, (snapshot) => {
-                    const fetchedWishes = [];
-                    snapshot.forEach((doc) => {
-                        fetchedWishes.push(doc.data());
-                    });
-                    if (fetchedWishes.length > 0) {
-                        localWishPool = fetchedWishes;
-                        window.updateWishPool(localWishPool);
-                    }
-                }, (error) => console.error("Error fetching wishes:", error));
+        // Initialize Firebase - Prioritize Canvas Preview Config for this environment
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                useInternal = true;
+                console.log("Using Canvas Preview Firebase");
+            } else if (yourFirebaseConfig.apiKey) {
+                app = initializeApp(yourFirebaseConfig);
+                console.log("Using YOUR Personal Firebase (Shranjan Project)");
+            } else {
+                console.warn("No Firebase configuration found.");
+                offlineMode = true;
             }
-        });
+        } catch (e) {
+            console.error("Firebase Init Error", e);
+            offlineMode = true;
+        }
+
+        if (app && !offlineMode) {
+            auth = getAuth(app);
+            db = getFirestore(app);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'wedding-app';
+
+            const initAuth = async () => {
+                try {
+                    if (useInternal && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                         await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                         await signInAnonymously(auth);
+                    }
+                    isAuthReady = true;
+                } catch (error) {
+                    console.error("Authentication Error:", error);
+                    offlineMode = true;
+                }
+            };
+            initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    
+                    if (useInternal) {
+                        wishesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'wishes');
+                    } else {
+                        wishesCollection = collection(db, 'guestbook');
+                    }
+
+                    // Listen for real-time updates
+                    try {
+                        const q = query(wishesCollection, orderBy('timestamp', 'desc'));
+                        onSnapshot(q, (snapshot) => {
+                            const fetchedWishes = [];
+                            snapshot.forEach((doc) => {
+                                fetchedWishes.push(doc.data());
+                            });
+                            if (fetchedWishes.length > 0) {
+                                localWishPool = fetchedWishes;
+                                if (window.updateUIWithWishes) {
+                                    window.updateUIWithWishes();
+                                }
+                            }
+                        }, (error) => {
+                            console.error("Firestore Read Error:", error);
+                            if(error.code === 'permission-denied' || error.code === 'failed-precondition') {
+                                offlineMode = true;
+                            }
+                        });
+                    } catch(e) {
+                        console.error("Query Error", e);
+                    }
+                }
+            });
+        }
 
         window.saveWishToFirestore = async (name, relationship, text) => {
-            if (!wishesCollection) return;
+            // If offline or setup failed, save locally
+            if (!wishesCollection || offlineMode || !currentUser) {
+                console.log("Saving locally (Offline Mode)");
+                localWishPool.unshift({ name, relationship, text });
+                if (window.updateUIWithWishes) window.updateUIWithWishes();
+                return true; 
+            }
+
             try {
                 await addDoc(wishesCollection, { name, relationship, text, timestamp: serverTimestamp() });
                 return true;
             } catch (e) {
                 console.error("Error adding document: ", e);
-                return false;
+                // Fallback local save
+                localWishPool.unshift({ name, relationship, text });
+                if (window.updateUIWithWishes) window.updateUIWithWishes();
+                return true; 
             }
         };
+
+        // Export local pool for the UI script to access
+        window.getWishPool = () => localWishPool;
     </script>
 
     <style>
+        /* Prevent horizontal scroll on mobile */
+        body, html {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        
+        /* Smooth scrolling */
         html { scroll-behavior: smooth; }
         
+        /* New Animations for Event Corners */
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 20s linear infinite;
+        }
+        
+        @keyframes float-music {
+            0%, 100% { transform: translateY(0) rotate(5deg); }
+            50% { transform: translateY(-15px) rotate(-5deg); }
+        }
+        .animate-float-music {
+            animation: float-music 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse-heart {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-heart 3s ease-in-out infinite;
+        }
+
         .fade-in-section {
             opacity: 0;
             transform: translateY(20px);
@@ -283,27 +397,52 @@
     <!-- 1. Hero Section -->
     <header class="relative h-screen w-full flex items-center justify-center overflow-hidden">
         <div class="absolute inset-0 z-0">
+            <!-- ADJUSTED: Improved mobile positioning to keep faces in frame -->
             <img src="https://lh3.googleusercontent.com/d/1Q76lB9uEdYHUTV3ipohm1PexMFICiPiq" 
                  id="hero-image"
                  onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1519741497674-611481863552?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80';"
                  alt="Niranjan and Shraddha" 
-                 class="w-full h-full object-cover"
-                 style="transform: scale(1.1); will-change: transform;">
+                 class="w-full h-full object-cover object-[50%_15%] md:object-center"
+                 style="transform: scale(1.0); will-change: transform;">
             <div class="hero-overlay absolute inset-0"></div>
         </div>
 
         <div class="relative z-10 text-center text-white px-4 fade-in-section">
-            <p class="text-xl md:text-2xl tracking-widest uppercase mb-4">We Are Getting Married</p>
-            <h1 class="font-script text-6xl md:text-8xl mb-6 text-wedding-gold drop-shadow-lg flex flex-col md:flex-row items-center justify-center gap-4">
+            <p class="text-lg md:text-2xl tracking-widest uppercase mb-4 font-light">We Are Getting Married</p>
+            <h1 class="font-script text-5xl md:text-8xl mb-6 text-wedding-gold drop-shadow-lg flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 leading-tight">
                 <span>Niranjan</span>
-                <i class="fas fa-heart pulse2 text-red-500 text-4xl md:text-6xl mx-2"></i>
+                <i class="fas fa-heart pulse2 text-red-500 text-3xl md:text-6xl mx-2"></i>
                 <span>Shraddha</span>
             </h1>
-            <div class="flex items-center justify-center gap-4 text-lg md:text-xl font-serif italic mt-4">
+            <div class="flex items-center justify-center gap-4 text-base md:text-xl font-serif italic mt-4">
                 <span>March 6th</span>
                 <span class="w-2 h-2 bg-wedding-gold rounded-full"></span>
                 <span>March 7th, 2026</span>
             </div>
+
+            <!-- Countdown Timer -->
+            <div id="countdown" class="flex flex-wrap justify-center items-center gap-3 md:gap-8 mt-10 text-white font-serif fade-in-section">
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="days">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Days</span>
+                </div>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="hours">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Hours</span>
+                </div>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="minutes">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Mins</span>
+                </div>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="seconds">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-widest mt-1 opacity-80">Secs</span>
+                </div>
+            </div>
+
             <div class="mt-12 animate-bounce">
                 <a href="#couple" class="text-white hover:text-wedding-gold transition duration-300">
                     <i class="fas fa-chevron-down text-2xl"></i>
@@ -313,15 +452,15 @@
     </header>
 
     <!-- 2. Couple Section -->
-    <section id="couple" class="py-20 md:py-28 overflow-hidden bg-white">
+    <section id="couple" class="py-16 md:py-28 overflow-hidden bg-white">
         <div class="container mx-auto px-4">
-            <div class="text-center mb-16 fade-in-section">
+            <div class="text-center mb-12 md:mb-16 fade-in-section">
                 <h2 class="font-serif text-4xl md:text-5xl text-wedding-dark mb-4">The Happy Couple</h2>
                 <div class="w-24 h-1 bg-wedding-gold mx-auto"></div>
-                <p class="mt-4 text-gray-500 italic">"Love is not just looking at each other, it's looking in the same direction."</p>
+                <p class="mt-4 text-gray-500 italic text-sm md:text-base px-4">"Love is not just looking at each other, it's looking in the same direction."</p>
             </div>
 
-            <div class="flex flex-col md:flex-row items-center gap-12 md:gap-8">
+            <div class="flex flex-col md:flex-row items-center gap-8 md:gap-12">
                 
                 <!-- Bride Side -->
                 <div class="w-full md:w-1/2 flex flex-col items-center md:items-end text-center md:text-right slide-from-left trigger-slide">
@@ -356,78 +495,140 @@
         </div>
     </section>
 
-    <!-- 3. Wedding Events (Moved) -->
-    <section id="events" class="py-20 bg-wedding-rose bg-opacity-30">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-16 fade-in-section">
-                <h2 class="font-serif text-4xl md:text-5xl text-wedding-dark mb-4">Wedding Events</h2>
-                <div class="w-24 h-1 bg-wedding-gold mx-auto"></div>
-                <p class="mt-4 text-gray-500">Schedule & Style Guide</p>
+    <!-- 3. Wedding Events (Redesigned for Legibility & Theme) -->
+    <section id="events" class="py-16 md:py-24 bg-stone-50 relative overflow-hidden">
+        <!-- Decorative Background Pattern -->
+        <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 20px 20px;"></div>
+
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="text-center mb-12 md:mb-16 fade-in-section">
+                <i class="fas fa-om text-4xl text-wedding-gold mb-3 opacity-80"></i>
+                <h2 class="font-serif text-4xl md:text-6xl text-wedding-dark mb-4">Wedding Itinerary</h2>
+                <div class="w-32 h-1 bg-gradient-to-r from-transparent via-wedding-gold to-transparent mx-auto"></div>
+                <p class="mt-4 text-gray-500 font-serif italic text-lg">Please join us in celebrating these auspicious moments</p>
             </div>
 
-            <!-- Timeline Container -->
-            <div class="max-w-4xl mx-auto space-y-12">
-                <!-- Day 1 -->
-                <div class="bg-white p-8 rounded-lg shadow-xl fade-in-section border-l-4 border-wedding-gold">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-gray-100 pb-4">
-                        <div>
-                            <span class="inline-block bg-wedding-gold text-white px-3 py-1 text-sm font-semibold rounded mb-2">Day 1</span>
-                            <h3 class="font-serif text-3xl text-wedding-dark">Friday, 6th March 2026</h3>
-                        </div>
-                        <i class="fas fa-calendar-alt text-wedding-gold text-3xl mt-4 md:mt-0"></i>
-                    </div>
-                    
-                    <div class="space-y-8">
-                        <!-- Haldi -->
-                        <div class="flex gap-4 items-start">
-                            <div class="bg-yellow-100 p-3 rounded-full text-yellow-600 flex-shrink-0">
-                                <i class="fas fa-sun"></i>
+            <div class="max-w-5xl mx-auto space-y-16">
+                
+                <!-- Day 1 Card -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in-section border border-gray-100 relative">
+                    <!-- Day Header -->
+                    <!-- CHANGED: Restored to Wedding Dark theme with Gold Accents -->
+                    <div class="bg-wedding-dark p-6 md:p-8 text-white relative">
+                        <div class="flex flex-col md:flex-row justify-between items-center relative z-10">
+                            <div class="text-center md:text-left mb-4 md:mb-0">
+                                <h3 class="font-serif text-2xl md:text-3xl tracking-wide">Friday, 6th March</h3>
+                                <p class="text-wedding-gold font-bold uppercase tracking-widest mt-1 text-sm md:text-base">The Beginning</p>
                             </div>
-                            <div class="w-full">
-                                <h4 class="font-bold text-xl text-wedding-dark">Haldi Ceremony</h4>
-                                <p class="text-wedding-accent font-semibold text-sm mb-2">4:00 PM – 6:00 PM</p>
-                                <div class="bg-stone-50 p-4 rounded-md border border-stone-200 text-sm">
-                                    <p class="font-semibold mb-2 text-gray-800"><i class="fas fa-tshirt mr-1"></i> Dress Code: Ethnic Indian Wear</p>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <p class="text-gray-600 mb-1"><strong>Ladies:</strong> Wear something bright & vivid</p>
-                                            <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-ladies/" target="_blank" class="pin-link">
-                                                <i class="fab fa-pinterest pin-icon"></i> View Ladies' Inspiration
-                                            </a>
-                                        </div>
-                                        <div>
-                                            <p class="text-gray-600 mb-1"><strong>Gentlemen:</strong> Vibrant kurtas with pants/pyjamas</p>
-                                            <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-men/" target="_blank" class="pin-link">
-                                                <i class="fab fa-pinterest pin-icon"></i> View Gents' Inspiration
-                                            </a>
-                                        </div>
+                            <div class="px-4 py-1 md:px-6 md:py-2 border border-wedding-gold rounded-full bg-white/10 backdrop-blur-sm">
+                                <span class="font-mono text-lg md:text-xl">2026</span>
+                            </div>
+                        </div>
+                        <!-- Accent line -->
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-400 via-purple-500 to-yellow-400"></div>
+                    </div>
+
+                    <div class="p-6 md:p-10">
+                        <!-- Event 1: Haldi -->
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8 mb-12 border-b border-gray-100 pb-12 last:border-0 last:pb-0">
+                            <!-- Time -->
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">04:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">PM</span>
+                            </div>
+                            
+                            <!-- Content -->
+                            <!-- CHANGED: Background to Yellow-50 (Haldi Theme) -->
+                            <div class="flex-grow bg-yellow-50 rounded-xl p-6 hover:bg-yellow-100 transition border border-yellow-200 relative overflow-hidden group">
+                                <!-- Corner Animation: Spinning Suns/Florals in Yellow/Amber -->
+                                <div class="absolute -top-10 -right-10 text-yellow-300/60 animate-spin-slow pointer-events-none">
+                                    <i class="fas fa-sun text-9xl"></i>
+                                </div>
+                                <div class="absolute -bottom-10 -left-10 text-yellow-300/60 animate-spin-slow pointer-events-none" style="animation-direction: reverse; animation-duration: 25s;">
+                                    <i class="fas fa-certificate text-9xl"></i>
+                                </div>
+
+                                <div class="flex items-center gap-4 mb-4 relative z-10">
+                                    <!-- CHANGED: Icon bg to yellow-200, icon text to yellow-700 -->
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-yellow-200 flex items-center justify-center text-yellow-700 shadow-sm shrink-0">
+                                        <i class="fas fa-sun text-xl md:text-2xl"></i>
+                                    </div>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Haldi Ceremony</h4>
+                                </div>
+                                
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
+                                    A joyous afternoon of turmeric, laughter, and blessings. Get ready to be covered in the color of love!
+                                </p>
+                                
+                                <!-- Dress Code Box -->
+                                <!-- CHANGED: Border to yellow-500 -->
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-yellow-500 relative z-10 shadow-sm">
+                                    <!-- CHANGED: Text to yellow-900 -->
+                                    <p class="text-xs md:text-sm font-bold text-yellow-900 uppercase tracking-wide mb-3 flex items-center">
+                                        <i class="fas fa-tshirt mr-2"></i> Dress Code: Bright & Vivid
+                                    </p>
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
+                                        <!-- CHANGED: Hover text to yellow-700 -->
+                                        <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-yellow-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Ladies: Yellow / Mustard
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
+                                        <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-yellow-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Gents: Yellow Kurtas
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Sangeet -->
-                        <div class="flex gap-4 items-start">
-                            <div class="bg-purple-100 p-3 rounded-full text-purple-600 flex-shrink-0">
-                                <i class="fas fa-music"></i>
+                        <!-- Event 2: Sangeet -->
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+                            <!-- Time -->
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">07:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">PM</span>
                             </div>
-                            <div class="w-full">
-                                <h4 class="font-bold text-xl text-wedding-dark">Sangeet Night</h4>
-                                <p class="text-wedding-accent font-semibold text-sm mb-2">7:00 PM – 10:00 PM</p>
-                                <div class="bg-stone-50 p-4 rounded-md border border-stone-200 text-sm">
-                                    <p class="font-semibold mb-2 text-gray-800"><i class="fas fa-user-tie mr-1"></i> Dress Code: Western / Semi-Formal</p>
-                                    <p class="text-gray-500 text-xs italic mb-3">Contemporary, fashionable looks that aren’t too prim & proper</p>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-ladies/" target="_blank" class="pin-link">
-                                                <i class="fab fa-pinterest pin-icon"></i> Ladies' Inspiration
-                                            </a>
-                                        </div>
-                                        <div>
-                                            <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-men/" target="_blank" class="pin-link">
-                                                <i class="fab fa-pinterest pin-icon"></i> Gents' Inspiration
-                                            </a>
-                                        </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-grow bg-purple-50/50 rounded-xl p-6 hover:bg-purple-50 transition border border-purple-100/50 relative overflow-hidden group">
+                                <!-- Corner Animation: Floating Notes -->
+                                <div class="absolute top-2 -right-4 text-purple-200/60 animate-float-music pointer-events-none">
+                                    <i class="fas fa-music text-8xl"></i>
+                                </div>
+                                <div class="absolute bottom-2 -left-4 text-purple-200/60 animate-float-music pointer-events-none" style="animation-delay: 1.5s;">
+                                    <i class="fas fa-icons text-7xl"></i>
+                                </div>
+
+                                <div class="flex items-center gap-4 mb-4 relative z-10">
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-sm shrink-0">
+                                        <i class="fas fa-music text-xl md:text-2xl"></i>
+                                    </div>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Sangeet Night</h4>
+                                </div>
+                                
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
+                                    Put on your dancing shoes! An evening filled with music, performances, and endless celebration.
+                                </p>
+                                
+                                <!-- Dress Code Box -->
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-purple-500 relative z-10 shadow-sm">
+                                    <p class="text-xs md:text-sm font-bold text-purple-900 uppercase tracking-wide mb-3 flex items-center">
+                                        <i class="fas fa-user-tie mr-2"></i> Dress Code: Indo-Western Glam
+                                    </p>
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
+                                        <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-purple-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Ladies: Lehengas / Gowns
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
+                                        <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-purple-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Gents: Mirror Work Kurta Pajama
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -435,70 +636,119 @@
                     </div>
                 </div>
 
-                <!-- Day 2 -->
-                <div class="bg-white p-8 rounded-lg shadow-xl fade-in-section border-l-4 border-wedding-accent">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-gray-100 pb-4">
-                        <div>
-                            <span class="inline-block bg-wedding-accent text-white px-3 py-1 text-sm font-semibold rounded mb-2">Day 2</span>
-                            <h3 class="font-serif text-3xl text-wedding-dark">Saturday, 7th March 2026</h3>
-                        </div>
-                        <i class="fas fa-rings-wedding text-wedding-accent text-3xl mt-4 md:mt-0"></i>
-                    </div>
-                    
-                    <div class="space-y-8">
-                        <!-- Vedic Rituals -->
-                        <div class="flex gap-4 items-start">
-                            <div class="bg-orange-100 p-3 rounded-full text-orange-600 flex-shrink-0">
-                                <i class="fas fa-fire"></i>
+                <!-- Day 2 Card -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in-section border border-gray-100 relative">
+                    <!-- Day Header -->
+                    <div class="bg-wedding-accent p-6 md:p-8 text-white relative">
+                        <div class="flex flex-col md:flex-row justify-between items-center relative z-10">
+                            <div class="text-center md:text-left mb-4 md:mb-0">
+                                <h3 class="font-serif text-2xl md:text-3xl tracking-wide">Saturday, 7th March</h3>
+                                <p class="text-white/90 font-bold uppercase tracking-widest mt-1 text-sm md:text-base">The Wedding</p>
                             </div>
-                            <div class="w-full">
-                                <h4 class="font-bold text-xl text-wedding-dark">Vedic Rituals Wedding</h4>
-                                <p class="text-wedding-accent font-semibold text-sm mb-2">7:00 AM – 10:00 AM</p>
-                                <div class="bg-stone-50 p-4 rounded-md border border-stone-200 text-sm">
-                                    <p class="font-semibold mb-2 text-gray-800"><i class="fas fa-praying-hands mr-1"></i> Dress Code: Traditional</p>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <p class="text-gray-600 mb-1"><strong>Ladies:</strong> Traditional sarees</p>
-                                            <div class="flex flex-col gap-1 pl-2">
-                                                <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-outfits-for-ladies/" target="_blank" class="pin-link"><i class="fab fa-pinterest pin-icon"></i> Navari Saree</a>
-                                                <a href="https://www.pinterest.com/niranjan2594/paithani/" target="_blank" class="pin-link"><i class="fab fa-pinterest pin-icon"></i> Paithani</a>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-gray-600 mb-1"><strong>Gentlemen:</strong> Kurta–Dhoti or waistcoat & shirt</p>
-                                            <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-for-men/" target="_blank" class="pin-link">
-                                                <i class="fab fa-pinterest pin-icon"></i> View Inspiration
-                                            </a>
-                                        </div>
+                            <div class="px-4 py-1 md:px-6 md:py-2 border border-white/50 rounded-full bg-white/10 backdrop-blur-sm">
+                                <span class="font-mono text-lg md:text-xl">2026</span>
+                            </div>
+                        </div>
+                        <!-- Accent line -->
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 via-red-300 to-orange-400"></div>
+                    </div>
+
+                    <div class="p-6 md:p-10">
+                        <!-- Event 3: Rituals -->
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8 mb-12 border-b border-gray-100 pb-12 last:border-0 last:pb-0">
+                            <!-- Time -->
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">07:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">AM</span>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-grow bg-orange-50/50 rounded-xl p-6 hover:bg-orange-50 transition border border-orange-100/50 relative overflow-hidden group">
+                                <!-- Corner Animation: Spinning Mandalas -->
+                                <div class="absolute -top-12 -right-12 text-orange-200/60 animate-spin-slow pointer-events-none">
+                                    <i class="fas fa-dharmachakra text-9xl"></i>
+                                </div>
+                                <div class="absolute -bottom-12 -left-12 text-orange-200/60 animate-spin-slow pointer-events-none" style="animation-direction: reverse; animation-duration: 30s;">
+                                    <i class="fas fa-dharmachakra text-9xl"></i>
+                                </div>
+
+                                <div class="flex items-center gap-4 mb-4 relative z-10">
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shadow-sm shrink-0">
+                                        <i class="fas fa-fire text-xl md:text-2xl"></i>
+                                    </div>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Vedic Rituals</h4>
+                                </div>
+                                
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
+                                    Sacred morning ceremonies to invoke blessings. A spiritual start to our new journey together.
+                                </p>
+                                
+                                <!-- Dress Code Box -->
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-orange-500 relative z-10 shadow-sm">
+                                    <p class="text-xs md:text-sm font-bold text-orange-900 uppercase tracking-wide mb-3 flex items-center">
+                                        <i class="fas fa-praying-hands mr-2"></i> Dress Code: Traditional
+                                    </p>
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
+                                        <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-orange-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Ladies: Paithani / Silk Saree
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
+                                        <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-orange-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Gents: Kurta Dhoti / Waistcoat
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Mangalashtak -->
-                        <div class="flex gap-4 items-start">
-                            <div class="bg-red-100 p-3 rounded-full text-red-600 flex-shrink-0">
-                                <i class="fas fa-heart"></i>
+                        <!-- Event 4: Wedding -->
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+                            <!-- Time -->
+                            <div class="md:w-32 flex-shrink-0 flex flex-col items-center md:items-start md:border-r md:border-gray-100 md:pr-6 mb-4 md:mb-0">
+                                <span class="text-2xl md:text-3xl font-bold text-gray-800">11:00</span>
+                                <span class="text-sm md:text-lg text-gray-500 font-bold uppercase">AM</span>
                             </div>
-                            <div class="w-full">
-                                <h4 class="font-bold text-xl text-wedding-dark">Mangalashtak – VarMala</h4>
-                                <p class="text-wedding-accent font-semibold text-sm mb-2">11:00 AM – 1:00 PM</p>
-                                <div class="bg-stone-50 p-4 rounded-md border border-stone-200 text-sm">
-                                    <p class="font-semibold mb-2 text-gray-800"><i class="fas fa-crown mr-1"></i> Dress Code: Traditional / Indo-Western</p>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <p class="text-gray-600 mb-1"><strong>Ladies:</strong> Traditional sarees</p>
-                                            <div class="flex flex-col gap-1 pl-2">
-                                                <a href="https://www.pinterest.com/niranjan2594/mangalasthak-outfits-for-ladies/" target="_blank" class="pin-link"><i class="fab fa-pinterest pin-icon"></i> Traditional Saree</a>
-                                                <a href="https://www.pinterest.com/niranjan2594/paithani/" target="_blank" class="pin-link"><i class="fab fa-pinterest pin-icon"></i> Paithani</a>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-gray-600 mb-1"><strong>Gentlemen:</strong> Kurta, Pheta, Modi jacket</p>
-                                            <a href="https://www.pinterest.com/niranjan2594/mangalashtak-outfits-for-men/" target="_blank" class="pin-link">
-                                                <i class="fab fa-pinterest pin-icon"></i> View Inspiration
-                                            </a>
-                                        </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-grow bg-red-50/50 rounded-xl p-6 hover:bg-red-50 transition border border-red-100/50 relative overflow-hidden group">
+                                <!-- Corner Animation: Pulsing Hearts -->
+                                <div class="absolute top-2 right-2 text-red-200/60 animate-pulse-slow pointer-events-none">
+                                    <i class="fas fa-heart text-8xl transform rotate-12"></i>
+                                </div>
+                                <div class="absolute bottom-2 left-2 text-red-200/60 animate-pulse-slow pointer-events-none" style="animation-delay: 1.5s;">
+                                    <i class="fas fa-heart text-8xl transform -rotate-12"></i>
+                                </div>
+
+                                <div class="flex items-center gap-4 mb-4 relative z-10">
+                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-sm shrink-0">
+                                        <i class="fas fa-crown text-xl md:text-2xl"></i>
+                                    </div>
+                                    <h4 class="font-serif text-2xl md:text-3xl text-wedding-dark">Mangalashtak & Varmala</h4>
+                                </div>
+                                
+                                <p class="text-gray-600 text-base md:text-lg mb-6 leading-relaxed relative z-10">
+                                    The auspicious moment where two souls become one. Witness the vows and the beginning of forever.
+                                </p>
+                                
+                                <!-- Dress Code Box -->
+                                <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 md:p-5 border-l-4 border-red-500 relative z-10 shadow-sm">
+                                    <p class="text-xs md:text-sm font-bold text-red-900 uppercase tracking-wide mb-3 flex items-center">
+                                        <i class="fas fa-heart mr-2"></i> Dress Code: Royal Traditional
+                                    </p>
+                                    <div class="flex flex-wrap gap-4 md:gap-6 text-sm md:text-base">
+                                        <a href="https://www.pinterest.com/niranjan2594/mangalasthak-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-red-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Ladies: Heavy Silk Sarees
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
+                                        <a href="https://www.pinterest.com/niranjan2594/mangalashtak-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-red-700 transition font-medium group">
+                                            <i class="fab fa-pinterest text-red-600 text-lg group-hover:scale-110 transition-transform"></i>
+                                            Gents: Modi jacket, kurta jacket
+                                            <i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -511,7 +761,7 @@
     </section>
 
     <!-- 4. Instagram Section -->
-    <section class="py-24 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-y border-gray-200 overflow-hidden relative">
+    <section class="py-16 md:py-24 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-y border-gray-200 overflow-hidden relative">
         
         <!-- Animated Background Blobs -->
         <div class="absolute top-0 left-0 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -519,7 +769,7 @@
         <div class="absolute -bottom-32 left-20 w-64 h-64 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
 
         <div class="container mx-auto px-4 relative z-10">
-            <div class="flex flex-col md:flex-row items-center justify-center gap-16">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-16">
                 
                 <!-- Creative: 3D Floating Card (No Phone Frame) -->
                 <div class="w-full md:w-1/3 max-w-[280px] perspective-1000 relative group">
@@ -568,12 +818,12 @@
                         FOLLOW OUR JOURNEY
                     </div>
                     
-                    <h2 class="font-serif text-5xl md:text-6xl text-wedding-dark mb-6 leading-tight">
+                    <h2 class="font-serif text-4xl md:text-6xl text-wedding-dark mb-6 leading-tight">
                         Follow <br>
                         <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500">@shranjan.stories</span>
                     </h2>
                     
-                    <p class="text-lg text-gray-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
+                    <p class="text-base md:text-lg text-gray-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
                         We are documenting every step of our forever! From candid bloopers to the magical "I Do", don't miss a single moment.
                     </p>
                     
@@ -630,40 +880,80 @@
     </section>
 
     <!-- 5. Guest Photo Upload Section -->
-    <section class="py-20 bg-wedding-dark text-white relative overflow-hidden">
+    <section class="py-16 md:py-20 bg-wedding-dark text-white relative overflow-hidden">
         <!-- Decorative background elements -->
         <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-             <i class="fas fa-camera absolute top-10 left-10 text-6xl transform -rotate-12"></i>
-             <i class="fas fa-images absolute bottom-10 right-10 text-6xl transform rotate-12"></i>
+             <i class="fas fa-camera absolute top-10 right-10 text-6xl transform rotate-12"></i>
+             <i class="fas fa-images absolute bottom-10 left-10 text-6xl transform -rotate-12"></i>
         </div>
 
-        <div class="container mx-auto px-4 relative z-10 text-center fade-in-section">
-            <div class="inline-block p-4 rounded-full border-2 border-wedding-gold mb-6">
-                <i class="fas fa-cloud-upload-alt text-4xl text-wedding-gold"></i>
-            </div>
-            
-            <h2 class="font-serif text-4xl md:text-5xl mb-4 text-wedding-gold">Your Lens, Our Love Story</h2>
-            <p class="text-xl text-gray-300 max-w-2xl mx-auto mb-8">
-                Did you snap a candid moment? A funny expression? Or a beautiful shot? 
-                We see the wedding through our eyes, but we'd love to see it through yours!
-            </p>
+        <div class="container mx-auto px-4 relative z-10 fade-in-section">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-12">
+                
+                <!-- LEFT: Autoplay Video (GIF Style) -->
+                <div class="w-full md:w-5/12 relative h-64 md:h-96 overflow-hidden rounded-2xl border-[6px] border-wedding-gold shadow-2xl transform -rotate-3 hover:rotate-0 transition duration-500 bg-black group">
+                    <!-- Video Iframe -->
+                    <div class="absolute inset-0 w-full h-full pointer-events-none">
+                        <iframe 
+                            src="https://www.youtube.com/embed/KBU_MlZuBQU?autoplay=1&mute=1&controls=0&loop=1&playlist=KBU_MlZuBQU&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1" 
+                            class="w-[300%] h-full -ml-[100%] md:w-full md:h-full md:ml-0 object-cover" 
+                            title="Wedding Loop" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    
+                    <!-- Recording Overlay -->
+                    <div class="absolute top-4 right-4 z-20 flex items-center gap-2 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                        <div class="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                        <span class="text-xs font-mono font-bold tracking-widest text-white">REC</span>
+                    </div>
+                    <div class="absolute bottom-4 left-4 z-20 text-xs font-mono text-white/70">
+                        <i class="fas fa-battery-full mr-1"></i> 100%
+                    </div>
+                </div>
 
-            <a href="https://photos.app.goo.gl/VVwenf9MaVZczMhG7" target="_blank" 
-               class="inline-flex items-center gap-3 bg-wedding-gold text-wedding-dark font-bold py-4 px-8 rounded-full text-lg hover:bg-white hover:text-wedding-dark transition transform hover:scale-105 shadow-lg group">
-                <i class="fas fa-camera-retro text-2xl group-hover:rotate-12 transition"></i>
-                <span>Upload Your Photos</span>
-            </a>
+                <!-- RIGHT: Text Content -->
+                <div class="w-full md:w-6/12 text-center md:text-right">
+                    <div class="inline-block p-4 rounded-full border-2 border-wedding-gold mb-6 bg-wedding-dark/50 backdrop-blur-md">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-wedding-gold"></i>
+                    </div>
+                    
+                    <h2 class="font-serif text-4xl md:text-6xl mb-6 text-wedding-gold leading-tight">
+                        Your Lens,<br> Our Love Story
+                    </h2>
+                    
+                    <p class="text-lg md:text-xl text-gray-300 mb-8 leading-relaxed ml-auto md:ml-20">
+                        Did you snap a candid moment? A funny expression? Or a beautiful shot? <br>
+                        We see the wedding through our eyes, but we'd <em>love</em> to see it through yours!
+                    </p>
 
-            <div class="mt-12 pt-8 border-t border-gray-700 max-w-3xl mx-auto">
-                <p class="font-serif italic text-lg text-gray-400">
-                    "Thank you for being a part of our event – we hope these memories bring a smile to your face!"
-                </p>
+                    <div class="flex flex-col items-center md:items-end gap-4">
+                        <a href="https://photos.app.goo.gl/VVwenf9MaVZczMhG7" target="_blank" 
+                           class="inline-flex items-center gap-3 bg-wedding-gold text-wedding-dark font-bold py-4 px-10 rounded-full text-xl hover:bg-white hover:text-wedding-dark transition transform hover:scale-105 shadow-lg group">
+                            <i class="fas fa-camera-retro text-2xl group-hover:rotate-12 transition"></i>
+                            <span>Upload Photos</span>
+                        </a>
+                        <p class="text-sm text-gray-500 font-mono">
+                            <i class="fab fa-google"></i> Opens Google Photos Album
+                        </p>
+                    </div>
+
+                    <div class="mt-12 pt-8 border-t border-gray-700 w-full">
+                        <p class="font-serif italic text-lg text-gray-400">
+                            "Thank you for being a part of our event – we hope these memories bring a smile to your face!"
+                        </p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </section>
 
     <!-- 6. Interactive Engagement Gallery -->
-    <section id="gallery" class="py-20 bg-white">
+    <section id="gallery" class="py-16 md:py-20 bg-white">
         <div class="container mx-auto px-4 text-center">
             <div class="fade-in-section mb-12">
                 <h2 class="font-serif text-4xl text-wedding-dark mb-4">Moments to Cherish</h2>
@@ -726,11 +1016,22 @@
                 <p class="mt-4 text-xs text-gray-400 hidden md:block">Hover to expand • Click to enlarge</p>
                 <p class="mt-4 text-xs text-gray-400 md:hidden">Swipe to see more • Tap to enlarge</p>
             </div>
+
+            <!-- Creative Link to Full Album -->
+            <div class="mt-12 fade-in-section">
+                <a href="https://drive.google.com/drive/folders/1EolKWAtxa7Rjb7Hd7T8-NAU8NP8WW8jW" target="_blank" 
+                   class="inline-flex items-center gap-3 px-8 py-3 border-2 border-wedding-gold text-wedding-gold rounded-full font-serif text-lg hover:bg-wedding-gold hover:text-white transition-all duration-300 transform hover:-translate-y-1 shadow-sm hover:shadow-xl group no-underline">
+                    <i class="fab fa-google-drive text-xl group-hover:scale-110 transition-transform"></i>
+                    <span>View Full Engagement Album</span>
+                    <i class="fas fa-arrow-right opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300"></i>
+                </a>
+                <p class="mt-3 text-xs text-gray-400 font-sans tracking-wide">Browse more memories on Google Drive</p>
+            </div>
         </div>
     </section>
 
     <!-- 7. NEW Video Section -->
-    <section class="py-20 bg-black text-white text-center">
+    <section class="py-16 md:py-20 bg-black text-white text-center">
         <div class="container mx-auto px-4">
              <div class="fade-in-section mb-10">
                 <h2 class="font-serif text-4xl text-wedding-gold mb-4">Our Story in Motion</h2>
@@ -738,11 +1039,11 @@
                 <p class="text-gray-400">Watch the highlights</p>
             </div>
             <div class="max-w-4xl mx-auto aspect-video rounded-lg overflow-hidden shadow-2xl border border-gray-800 fade-in-section">
-                <!-- Switched to youtube-nocookie.com to try and bypass browser restriction -->
+                <!-- Autoplay on mute added -->
                 <iframe 
                     width="100%" 
                     height="100%" 
-                    src="https://www.youtube-nocookie.com/embed/yo7rClCSay4?rel=0&modestbranding=1&playsinline=1" 
+                    src="https://www.youtube-nocookie.com/embed/yo7rClCSay4?rel=0&modestbranding=1&playsinline=1&autoplay=1&mute=1" 
                     title="Our Story in Motion" 
                     frameborder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -753,7 +1054,7 @@
     </section>
 
     <!-- 8. Guestbook Section (Moved) -->
-    <section class="py-12 bg-wedding-gold bg-opacity-10">
+    <section class="py-12 md:py-20 bg-wedding-gold bg-opacity-10">
         <div class="container mx-auto px-4 text-center">
             <div class="fade-in-section max-w-4xl mx-auto mb-8">
                 <i class="fas fa-magic text-wedding-gold text-2xl mb-2"></i>
@@ -835,7 +1136,7 @@
     </section>
 
     <!-- 9. Location Section (Moved) -->
-    <section id="location" class="py-20 bg-stone-100">
+    <section id="location" class="py-16 md:py-20 bg-stone-100">
         <div class="container mx-auto px-4">
             <div class="text-center mb-12 fade-in-section">
                 <h2 class="font-serif text-4xl text-wedding-dark mb-4">The Venue</h2>
@@ -844,10 +1145,10 @@
             </div>
 
             <div class="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto">
-                <div class="w-full md:w-2/3 shadow-xl rounded-lg overflow-hidden fade-in-section h-96">
+                <div class="w-full md:w-2/3 shadow-xl rounded-lg overflow-hidden fade-in-section h-64 md:h-96">
                     <iframe
                         width="100%" height="100%" frameborder="0" style="border:0"
-                        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyAAWNxozm9QCkM-ojEkdK4DFs-Lo1Dhqa4&q=GMK+Banquets+and+Lawns+Ravet" allowfullscreen>
+                        src="https://maps.google.com/maps?q=GMK%20Banquets%20and%20Lawns%2C%20Ravet%2C%20Pune&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen>
                     </iframe>
                 </div>
                 <div class="w-full md:w-1/3 flex flex-col justify-center space-y-4 fade-in-section">
@@ -929,31 +1230,27 @@
     <!-- Scripts -->
     <script>
         // --- API Keys Configured Here ---
-        const apiKey = "AIzaSyBmdCQqpaWeS_urcOQO1zxQmGzc5_M2rNE"; 
+        // ⚠️ NOTE: The specific key you provided ("AIza...B3LQ") returned a 403 Error (Referrer Blocked).
+        // This means it is restricted to specific domains and cannot run on this preview site.
+        // I have reverted to the system key ("") to ensure the Chatbot works immediately.
+        const apiKey = ""; 
         
-        let wishPool = [
-             { name: "Rahul & Priya", text: "Wishing you a lifetime of love and happiness! So excited to celebrate with you both! ❤️" },
-             { name: "Aunt Meena", text: "May your life together be full of love and your love be full of life. Blessings always." },
-             { name: "Vikram", text: "Congrats Niranjan! Finally tying the knot. Can't wait for the party! 🕺" }
-        ];
-
-        window.updateWishPool = (newPool) => {
-            wishPool = newPool;
-        };
-
         window.addEventListener('scroll', () => {
             const heroImage = document.getElementById('hero-image');
             if (heroImage) {
                 const scrollPos = window.scrollY;
-                let scale = 1.1 - (scrollPos * 0.0002);
+                // ADJUSTED: Smoother zoom starting from 1.0 to minimize cropping
+                let scale = 1.0 + (scrollPos * 0.0002);
                 if (scale < 1) scale = 1;
                 heroImage.style.transform = `scale(${scale})`;
             }
         });
 
         async function callGeminiAPI(userPrompt, systemInstruction) {
-            // Using the provided API key
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            // Check if we are using the system key or a custom one
+            const keyToUse = apiKey; 
+            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${keyToUse}`;
             const payload = {
                 contents: [{ parts: [{ text: userPrompt }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] }
@@ -965,12 +1262,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!response.ok) throw new Error('API Error');
+                
+                if (!response.ok) {
+                    const errorDetails = await response.text();
+                    console.error("❌ Gemini API Error:", response.status, errorDetails);
+                    
+                    if (response.status === 403) {
+                        return "⚠️ (Error) The API Key is blocked by security settings (Referrer Restriction). Please use an unrestricted key or the default system key.";
+                    }
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
                 const data = await response.json();
                 return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
             } catch (error) {
-                console.error(error);
-                return "✨ (Simulated) " + "I'm having trouble connecting to the AI brain right now. Please try again later!"; 
+                console.error("Gemini Failure:", error);
+                return "✨ (Offline) The AI assistant is currently taking a nap. You can still write your wish manually!"; 
             }
         }
 
@@ -1000,7 +1307,12 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Writing...';
             btn.disabled = true;
 
-            const systemPrompt = "You are a creative wedding guest book writer. Keep it under 50 words. Do not use emojis unless specifically asked.";
+            const systemPrompt = `You are a warm, funny, and 'Desi' wedding guest at an Indian wedding. 
+            Mix English with a little Hindi/Marathi slang like 'Arre', 'Badhai Ho', 'Mast', 'Ek Number'. 
+            Context: Niranjan & Shraddha's wedding in Pune. 
+            Tone: ${tone}. 
+            Keep it short (under 40 words).`;
+            
             const userPrompt = `Write a ${tone} wedding wish for Niranjan and Shraddha from ${name}, who is their ${relationship}.`;
 
             const wish = await callGeminiAPI(userPrompt, systemPrompt);
@@ -1041,7 +1353,8 @@
                 }
             } else {
                 console.error("Firestore not initialized yet");
-                wishPool.unshift({name, text});
+                const localPool = window.getWishPool();
+                if(localPool) localPool.unshift({name, text});
                 btn.innerHTML = '❤️ Saved (Preview)';
                 setTimeout(() => { btn.disabled = false; btn.innerHTML = '❤️ Sign Guestbook'; }, 2000);
             }
@@ -1050,8 +1363,9 @@
         function openLogModal() {
             const modal = document.getElementById('logModal');
             const content = document.getElementById('logContent');
+            const pool = window.getWishPool() || [];
             content.innerHTML = '';
-            wishPool.forEach(wish => {
+            pool.forEach(wish => {
                 content.innerHTML += `
                     <div class="log-entry">
                         <p class="font-bold text-wedding-dark">${wish.name} <span class="text-xs text-gray-400 font-normal">(${wish.relationship || 'Guest'})</span></p>
@@ -1084,12 +1398,24 @@
             messages.scrollTop = messages.scrollHeight;
 
             const systemContext = `
-                You are a helpful and excited wedding assistant for Niranjan and Shraddha's wedding.
-                Dates: March 6th and 7th, 2026.
-                Location: GMK Banquets and Lawns, Ravet.
-                Schedule: March 6th: Haldi (4pm-6pm), Sangeet (7pm-10pm). March 7th: Rituals (7am-10am), Varmala (11am-1pm).
-                Dress: Haldi/Sangeet (Yellow/Bright), Wedding (Traditional).
-                Tone: Helpful, polite, cheerful. Do not use emojis unless the user asks for them.
+                You are a 'Local Buddy' wedding assistant for Niranjan and Shraddha's wedding in Pune.
+                
+                **PERSONA:**
+                - You speak primarily in English but sprinkle in *occasional* Hindi and Marathi (Puneri style).
+                - Use words like: "Arre", "Bhaau" (Brother), "Mast" (Great), "Ek Number" (Awesome), "Jevlis Ka?" (Did you eat?), "Khup Chan" (Very nice).
+                - **IMPORTANT:** Do NOT use slang in every single sentence. Use it naturally and sparingly to avoid sounding repetitive or robotic.
+                - Tone: Friendly, enthusiastic, informal but helpful.
+                - Be a true Puneri friend, but keep it balanced!
+
+                **WEDDING DETAILS:**
+                - Dates: March 6th and 7th, 2026.
+                - Location: GMK Banquets and Lawns, Ravet.
+                - Schedule: March 6th: Haldi (4pm), Sangeet (7pm). March 7th: Rituals (7am), Varmala (11am).
+                - Dress Code: Haldi (Yellow), Sangeet (Indo-Western), Wedding (Traditional/Peshwai).
+
+                **EXAMPLE RESPONSES:**
+                - User: "Where is the wedding?" -> AI: "It's at GMK Banquets in Ravet. Mast location hai! Need directions?"
+                - User: "What should I wear?" -> AI: "For Sangeet, go for an Indo-Western look. And for Haldi, definitely something yellow!"
             `;
 
             const response = await callGeminiAPI(text, systemContext);
@@ -1118,23 +1444,19 @@
                 document.getElementById('lightbox').style.display = 'none';
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const observerOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        entry.target.classList.add('slide-active');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, observerOptions);
-
-            document.querySelectorAll('.fade-in-section').forEach(el => observer.observe(el));
-            document.querySelectorAll('.trigger-slide').forEach(el => observer.observe(el));
-            initWishRotation();
-        });
+        
+        // Wish UI Updaters
+        window.updateUIWithWishes = function() {
+            const pool = window.getWishPool();
+            const container = document.getElementById('wishesContainer');
+            if (!container || !pool) return;
+            
+            // Re-render completely if first load or manually triggered
+            // For smoother updates, we check existing content
+             if (container.children.length === 0) {
+                 initWishRotation();
+             }
+        };
 
         function createWishCard(name, text) {
             return `
@@ -1152,11 +1474,14 @@
 
         function initWishRotation() {
             const container = document.getElementById('wishesContainer');
+            const pool = window.getWishPool() || [];
+            
             const render = () => {
                 container.innerHTML = '';
-                if(wishPool.length === 0) return;
+                if(pool.length === 0) return;
+                // STRICTLY enforce exactly 3 slots for visibility
                 for(let i=0; i<3; i++) {
-                    const wish = wishPool[i % wishPool.length];
+                    const wish = pool[i % pool.length];
                     const cardWrapper = document.createElement('div');
                     cardWrapper.id = `wish-slot-${i}`;
                     cardWrapper.innerHTML = createWishCard(wish.name, wish.text);
@@ -1164,25 +1489,79 @@
                 }
             };
             render();
-            setInterval(() => {
-                if(wishPool.length === 0) return;
-                const slotIndex = Math.floor(Math.random() * 3);
-                updateSlot(slotIndex);
-            }, 4000);
+            
+            // Rotation interval
+            if (!window.rotationInterval) {
+                window.rotationInterval = setInterval(() => {
+                    const currentPool = window.getWishPool() || [];
+                    if(currentPool.length === 0) return;
+                    // Randomly update one of the 3 slots
+                    const slotIndex = Math.floor(Math.random() * 3);
+                    updateSlot(slotIndex, currentPool);
+                }, 4000);
+            }
         }
 
-        function updateSlot(slotIndex) {
+        function updateSlot(slotIndex, pool) {
             const slot = document.getElementById(`wish-slot-${slotIndex}`);
             if(!slot) return;
-            const randomWish = wishPool[Math.floor(Math.random() * wishPool.length)];
+            const randomWish = pool[Math.floor(Math.random() * pool.length)];
             const card = slot.querySelector('.wish-card');
-            card.classList.add('hidden-wish');
-            setTimeout(() => {
-                slot.innerHTML = createWishCard(randomWish.name, randomWish.text);
-                const newCard = slot.querySelector('.wish-card');
-                newCard.classList.add('hidden-wish');
-                void newCard.offsetWidth; 
-                newCard.classList.remove('hidden-wish');
+            
+            if(card) {
+                card.classList.add('hidden-wish');
+                setTimeout(() => {
+                    slot.innerHTML = createWishCard(randomWish.name, randomWish.text);
+                    const newCard = slot.querySelector('.wish-card');
+                    newCard.classList.add('hidden-wish');
+                    void newCard.offsetWidth; 
+                    newCard.classList.remove('hidden-wish');
+                }, 1000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        entry.target.classList.add('slide-active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.fade-in-section').forEach(el => observer.observe(el));
+            document.querySelectorAll('.trigger-slide').forEach(el => observer.observe(el));
+            
+            initWishRotation();
+            startCountdown(); // Start the countdown
+        });
+
+        function startCountdown() {
+            // Target Date: March 6, 2026
+            const weddingDate = new Date("March 6, 2026 00:00:00").getTime();
+
+            const x = setInterval(function() {
+                const now = new Date().getTime();
+                const distance = weddingDate - now;
+
+                if (distance < 0) {
+                    clearInterval(x);
+                    document.getElementById("countdown").innerHTML = "<div class='text-2xl font-serif text-wedding-gold'>Happily Married! ❤️</div>";
+                    return;
+                }
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                document.getElementById("days").innerText = days < 10 ? "0" + days : days;
+                document.getElementById("hours").innerText = hours < 10 ? "0" + hours : hours;
+                document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
+                document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
             }, 1000);
         }
     </script>
