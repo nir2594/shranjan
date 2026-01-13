@@ -1235,9 +1235,7 @@
 
     <!-- Scripts -->
     <script>
-        // --- API Keys Configured Here ---
-        // The environment will automatically inject the key if available.
-        const apiKey = "AIzaSyBFwU3QUfEWPIAj-dRg2vg70hvbdrqB3LQ"; 
+        
         
         window.addEventListener('scroll', () => {
             const heroImage = document.getElementById('hero-image');
@@ -1250,40 +1248,41 @@
             }
         });
 
-        async function callGeminiAPI(userPrompt, systemInstruction) {
-            // Check if we are using the system key or a custom one
-            const keyToUse = apiKey; 
-            
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${keyToUse}`;
-            const payload = {
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: systemInstruction }] }
-            };
+        
+async function callGeminiAPI(userPrompt, systemInstruction) {
+  try {
+    const response = await fetch(
+      "https://geminiproxy-tthitannbq-uc.a.run.app",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt: userPrompt,
+          systemInstruction: systemInstruction
+        })
+      }
+    );
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    const errorDetails = await response.text();
-                    console.error("❌ Gemini API Error:", response.status, errorDetails);
-                    
-                    if (response.status === 403) {
-                        return "⚠️ (Error) The API Key is blocked by security settings (Referrer Restriction). Please use an unrestricted key or the default system key.";
-                    }
-                    throw new Error(`API Error: ${response.status}`);
-                }
+    // 🔒 HARD CHECK (this was missing)
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Gemini proxy error:", response.status, text);
+      return "✨ (Temporary issue) Please try again in a moment.";
+    }
 
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
-            } catch (error) {
-                console.error("Gemini Failure:", error);
-                return "✨ (Offline) The AI assistant is currently taking a nap. You can still write your wish manually!"; 
-            }
-        }
+    const data = await response.json();
+
+    return (
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Sorry, I couldn’t generate a response."
+    );
+  } catch (error) {
+    console.error("AI fetch failed:", error);
+    return "✨ (Offline) The AI assistant is currently taking a nap. You can still write your wish manually!";
+  }
+}
 
         function toggleAITools() {
             const panel = document.getElementById('aiToolsPanel');
