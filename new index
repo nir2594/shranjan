@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Niranjan & Shraddha | Wedding Invitation</title>
+    
+    <!-- Custom Favicon: N ❤️ S -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='white' stroke='%23D4AF37' stroke-width='4'/%3E%3Ctext x='50' y='58' font-family='serif' font-weight='bold' font-size='35' text-anchor='middle' fill='%23D4AF37'%3EN %3Ctspan fill='%23C0392B'%3E%E2%99%A5%3C/tspan%3E S%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'wedding-gold': '#D4AF37',
+                        'wedding-rose': '#FCE4EC',
+                        'wedding-dark': '#2C3E50',
+                        'wedding-accent': '#C0392B',
+                        'pinterest': '#E60023',
+                        'insta': '#E1306C'
+                    },
+                    fontFamily: {
+                        'script': ['"Great Vibes"', 'cursive'],
+                        'serif': ['"Playfair Display"', 'serif'],
+                        'sans': ['"Montserrat"', 'sans-serif'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 20s linear infinite',
+                        'bounce-slow': 'bounce 3s infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- YOUR PERSONAL FIREBASE CONFIGURATION (For Export) ---
+        const yourFirebaseConfig = {
+            apiKey: "AIzaSyDwzZ10tkDqjkNv9jQRfHClLFHjCxv44RQ",
+            authDomain: "shranjan-100c2.firebaseapp.com",
+            projectId: "shranjan-100c2",
+            storageBucket: "shranjan-100c2.firebasestorage.app",
+            messagingSenderId: "733304394682",
+            appId: "1:733304394682:web:20d4002581dc6e7dbec383"
+        };
+
+        // --- LOGIC TO SWITCH BETWEEN PREVIEW AND YOUR DATABASE ---
+        let app, auth, db, wishesCollection;
+        let currentUser = null;
+        let useInternal = false;
+        let isAuthReady = false;
+        let offlineMode = false;
+        
+        let localWishPool = [
+            { name: "Rahul & Priya", text: "Wishing you a lifetime of love and happiness! So excited to celebrate with you both! ❤️", timestamp: { seconds: Date.now()/1000 } },
+            { name: "Aunt Meena", text: "May your life together be full of love and your love be full of life. Blessings always.", timestamp: { seconds: Date.now()/1000 - 100 } },
+            { name: "Vikram", text: "Congrats Niranjan! Finally tying the knot. Can't wait for the party! 🕺", timestamp: { seconds: Date.now()/1000 - 200 } }
+        ];
+
+        window.updateWishPool = (newPool) => {
+            localWishPool = newPool;
+        };
+
+        // Initialize Firebase - Prioritize Canvas Preview Config for this environment
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                useInternal = true;
+                console.log("Using Canvas Preview Firebase");
+            } else if (yourFirebaseConfig.apiKey) {
+                app = initializeApp(yourFirebaseConfig);
+                console.log("Using YOUR Personal Firebase (Shranjan Project)");
+            } else {
+                console.warn("No Firebase configuration found.");
+                offlineMode = true;
+            }
+        } catch (e) {
+            console.error("Firebase Init Error", e);
+            offlineMode = true;
+        }
+
+        if (app && !offlineMode) {
+            auth = getAuth(app);
+            db = getFirestore(app);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'wedding-app';
+
+            const initAuth = async () => {
+                try {
+                    if (useInternal && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                         await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                         await signInAnonymously(auth);
+                    }
+                    isAuthReady = true;
+                } catch (error) {
+                    console.error("Authentication Error:", error);
+                    offlineMode = true;
+                }
+            };
+            initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    
+                    if (useInternal) {
+                        wishesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'wishes');
+                    } else {
+                        wishesCollection = collection(db, 'guestbook');
+                    }
+
+                    // Listen for real-time updates
+                    try {
+                        onSnapshot(wishesCollection, (snapshot) => {
+                            const fetchedWishes = [];
+                            snapshot.forEach((doc) => {
+                                fetchedWishes.push(doc.data());
+                            });
+                            // Sort in memory
+                            fetchedWishes.sort((a, b) => {
+                                const timeA = a.timestamp?.seconds || 0;
+                                const timeB = b.timestamp?.seconds || 0;
+                                return timeB - timeA;
+                            });
+                            if (fetchedWishes.length > 0) {
+                                localWishPool = fetchedWishes;
+                                if (window.updateUIWithWishes) {
+                                    window.updateUIWithWishes();
+                                }
+                            }
+                        }, (error) => {
+                            console.error("Firestore Read Error:", error);
+                            if(error.code === 'permission-denied' || error.code === 'failed-precondition') {
+                                offlineMode = true;
+                            }
+                        });
+                    } catch(e) {
+                        console.error("Query Error", e);
+                    }
+                }
+            });
+        }
+
+        window.saveWishToFirestore = async (name, relationship, text) => {
+            // If offline or setup failed, save locally
+            if (!wishesCollection || offlineMode || !currentUser) {
+                console.log("Saving locally (Offline Mode)");
+                localWishPool.unshift({ name, relationship, text, timestamp: { seconds: Date.now() / 1000 } });
+                if (window.updateUIWithWishes) window.updateUIWithWishes();
+                return true; 
+            }
+
+            try {
+                await addDoc(wishesCollection, { name, relationship, text, timestamp: serverTimestamp() });
+                return true;
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                // Fallback local save
+                localWishPool.unshift({ name, relationship, text, timestamp: { seconds: Date.now() / 1000 } });
+                if (window.updateUIWithWishes) window.updateUIWithWishes();
+                return true; 
+            }
+        };
+
+        // Export local pool for the UI script to access
+        window.getWishPool = () => localWishPool;
+    </script>
+
+    <style>
+        /* Prevent horizontal scroll on mobile */
+        body, html {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+        
+        /* Typography adjustments for seniors */
+        body { font-size: 18px; line-height: 1.6; }
+        p { color: #374151; } /* Darker gray for readability */
+
+        /* New Animations for Event Corners */
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 20s linear infinite;
+        }
+        
+        @keyframes float-music {
+            0%, 100% { transform: translateY(0) rotate(5deg); }
+            50% { transform: translateY(-15px) rotate(-5deg); }
+        }
+        .animate-float-music {
+            animation: float-music 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse-heart {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-heart 3s ease-in-out infinite;
+        }
+
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 1s ease-out, transform 1s ease-out;
+            will-change: opacity, visibility;
+        }
+        .fade-in-section.is-visible { opacity: 1; transform: none; }
+
+        .slide-from-left { opacity: 0; transform: translateX(-100px); transition: all 1.2s ease-out; }
+        .slide-from-right { opacity: 0; transform: translateX(100px); transition: all 1.2s ease-out; }
+        .slide-active { opacity: 1; transform: translateX(0); }
+
+        .hero-overlay { background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)); }
+
+        .pulse2 { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); color: #ffadad; }
+            70% { transform: scale(1.1); color: #ff0000; }
+            100% { transform: scale(0.95); color: #ffadad; }
+        }
+
+        .wish-card { transition: opacity 1s ease-in-out, transform 1s ease-in-out; opacity: 1; }
+        .wish-card.hidden-wish { opacity: 0; transform: scale(0.95); }
+
+        .col-sm-12 { width: 100%; }
+        .text-center { text-align: center; }
+        
+        .to-top-wrapper { display: block; margin-bottom: 10px; }
+        .to-top { 
+            display: inline-block; width: 40px; height: 40px; background: #D4AF37; color: white;
+            line-height: 40px; border-radius: 50%; transition: 0.3s;
+        }
+        .to-top:hover { background: #2C3E50; color: white; }
+
+        .chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; }
+        .chat-button {
+            width: 60px; height: 60px; border-radius: 50%; background: #D4AF37; color: white;
+            display: flex; justify-content: center; align-items: center; font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.3s;
+        }
+        .chat-button:hover { transform: scale(1.1); }
+        
+        .chat-window {
+            width: 300px; max-width: 90vw; height: 400px; background: white; border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2); margin-bottom: 16px; display: none;
+            flex-direction: column; overflow: hidden; border: 1px solid #e5e7eb;
+        }
+        @media (max-width: 480px) { .chat-window { width: 85vw; right: 0; } }
+        
+        .chat-header { background: #2C3E50; color: white; padding: 12px 16px; font-family: 'Playfair Display', serif; display: flex; justify-content: space-between; align-items: center; }
+        .chat-messages { flex-grow: 1; padding: 12px; overflow-y: auto; background: #f9fafb; font-size: 14px; }
+        .chat-input-area { padding: 10px; border-top: 1px solid #e5e7eb; display: flex; background: white; }
+        .chat-input { flex-grow: 1; border: 1px solid #d1d5db; border-radius: 20px; padding: 8px 12px; font-size: 14px; outline: none; }
+        .chat-send { margin-left: 8px; color: #D4AF37; font-size: 18px; cursor: pointer; padding: 8px; }
+        
+        .message { margin-bottom: 10px; max-width: 80%; padding: 8px 12px; border-radius: 12px; line-height: 1.4; }
+        .message.bot { background: #e5e7eb; color: #374151; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .message.user { background: #D4AF37; color: white; align-self: flex-end; border-bottom-right-radius: 2px; margin-left: auto; }
+        
+        .typing-indicator { font-size: 12px; color: #9ca3af; margin-left: 10px; display: none; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 24px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
+        .log-entry { border-bottom: 1px solid #eee; padding: 12px 0; }
+        
+        .pin-link { 
+            display: inline-flex; 
+            align-items: center; 
+            color: #E60023; 
+            font-weight: 700; 
+            font-size: 1.1rem; 
+            margin-top: 8px; 
+            transition: all 0.3s ease; 
+            padding: 8px 16px;
+            background-color: #FFF0F2;
+            border-radius: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .pin-link:hover { 
+            color: white; 
+            background-color: #E60023; 
+            text-decoration: none; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(230, 0, 35, 0.3);
+        }
+        .pin-icon { margin-right: 8px; font-size: 1.4em; }
+
+        /* --- Interactive Flex Gallery Styles --- */
+        .flex-gallery-container {
+            display: flex;
+            width: 100%;
+            height: 500px;
+            gap: 10px;
+            overflow: hidden;
+        }
+        
+        .flex-gallery-item {
+            position: relative;
+            flex: 1; /* All items start equal */
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: flex 0.5s ease-in-out;
+        }
+
+        /* Hover Effect: Expand the hovered item */
+        .flex-gallery-item:hover {
+            flex: 5; /* Expands to take up more space */
+        }
+        
+        /* Image styling */
+        .flex-gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        /* Subtle zoom on image when expanded */
+        .flex-gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        /* Caption Styling */
+        .gallery-caption {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            padding: 10px 15px;
+            border-radius: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease 0.1s; /* Slight delay */
+            pointer-events: none;
+        }
+
+        .flex-gallery-item:hover .gallery-caption {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Mobile Styles for Gallery (Horizontal Scroll) */
+        @media (max-width: 768px) {
+            .flex-gallery-container {
+                display: block;
+                height: auto;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 20px;
+                /* Hide scrollbar but keep functionality */
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .flex-gallery-container::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .flex-gallery-item {
+                display: inline-block;
+                width: 80vw; /* Show most of the card */
+                height: 60vh;
+                margin-right: 15px;
+                flex: none; /* Disable flex behavior on mobile */
+            }
+            
+            /* Caption always visible on mobile */
+            .gallery-caption {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Lightbox */
+        .lightbox { display: none; position: fixed; z-index: 3000; padding-top: 50px; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9); }
+        .lightbox-content { margin: auto; display: block; max-width: 90%; max-height: 90vh; animation: zoom 0.6s; }
+        @keyframes zoom { from {transform:scale(0)} to {transform:scale(1)} }
+        .close-lightbox { position: absolute; top: 15px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body class="font-sans text-gray-800 bg-stone-50" id="top">
+
+    <!-- 1. Hero Section -->
+    <header class="relative h-screen w-full flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <!-- ADJUSTED: Improved mobile positioning to keep faces in frame -->
+            <img src="https://lh3.googleusercontent.com/d/1Q76lB9uEdYHUTV3ipohm1PexMFICiPiq" 
+                 id="hero-image" 
+                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1519741497674-611481863552?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80';"
+                 alt="Niranjan and Shraddha"
+                 class="w-full h-full object-cover object-[50%_15%] md:object-center"
+                 style="transform: scale(1.0); will-change: transform;">
+            <div class="hero-overlay absolute inset-0"></div>
+        </div>
+
+        <div class="relative z-10 text-center text-white px-4 fade-in-section">
+            <p class="text-lg md:text-2xl tracking-widest uppercase mb-4 font-medium text-white drop-shadow-md">We Are Getting Married</p>
+            <h1 class="font-script text-5xl md:text-8xl mb-6 text-wedding-gold drop-shadow-lg flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 leading-tight">
+                <span>Niranjan</span>
+                <i class="fas fa-heart pulse2 text-red-500 text-3xl md:text-6xl mx-2"></i>
+                <span>Shraddha</span>
+            </h1>
+            <div class="flex items-center justify-center gap-4 text-xl md:text-2xl font-serif italic mt-4 font-bold text-white drop-shadow-md">
+                <span>March 6th</span>
+                <span class="w-2 h-2 bg-wedding-gold rounded-full"></span>
+                <span>March 7th, 2026</span>
+            </div>
+
+            <!-- Countdown Timer -->
+            <div id="countdown" class="flex flex-wrap justify-center items-center gap-3 md:gap-8 mt-10 text-white font-serif fade-in-section">
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="days">00</span>
+                    <span class="text-sm md:text-base uppercase tracking-widest mt-1 opacity-90 font-semibold">Days</span>
+                </div>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="hours">00</span>
+                    <span class="text-sm md:text-base uppercase tracking-widest mt-1 opacity-90 font-semibold">Hours</span>
+                </div>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="minutes">00</span>
+                    <span class="text-sm md:text-base uppercase tracking-widest mt-1 opacity-90 font-semibold">Mins</span>
+                </div>
+                <div class="text-xl md:text-3xl opacity-50 font-light">:</div>
+                <div class="flex flex-col items-center min-w-[60px]">
+                    <span class="text-2xl md:text-5xl font-bold text-wedding-gold drop-shadow-md" id="seconds">00</span>
+                    <span class="text-sm md:text-base uppercase tracking-widest mt-1 opacity-90 font-semibold">Secs</span>
+                </div>
+            </div>
+
+            <div class="mt-12 animate-bounce">
+                <a href="#couple" class="text-white hover:text-wedding-gold transition duration-300">
+                    <i class="fas fa-chevron-down text-3xl"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Couple Section -->
+    <section id="couple" class="py-16 md:py-28 overflow-hidden bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12 md:mb-16 fade-in-section">
+                <h2 class="font-serif text-4xl md:text-5xl text-wedding-dark mb-4 font-bold">The Happy Couple</h2>
+                <div class="w-24 h-1 bg-wedding-gold mx-auto"></div>
+                <p class="mt-4 text-gray-700 italic text-lg md:text-xl px-4 font-medium">"Love is not just looking at each other, it's looking in the same direction."</p>
+            </div>
+            
+            <div class="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                
+                <!-- Bride Side -->
+                <div class="w-full md:w-1/2 flex flex-col items-center md:items-end text-center md:text-right slide-from-left trigger-slide">
+                    <div class="relative w-full max-w-sm mb-6 group bg-stone-50 rounded-lg overflow-hidden shadow-lg border border-gray-100 p-2">
+                        <img src="https://lh3.googleusercontent.com/d/1AhPNzT0EkzHr-OmQP_VpyTJ0PrUPoUxP" 
+                             alt="Shraddha"
+                             class="w-full h-auto object-contain relative z-10"
+                             onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1583939003579-730e3918a45a?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80';">
+                    </div>
+                    <h3 class="font-serif text-3xl md:text-4xl text-wedding-dark mb-2 font-bold">Shraddha</h3>
+                    <p class="text-gray-700 text-lg max-w-sm">The beautiful bride. A soul full of life, laughter, and love.</p>
+                </div>
+
+                <!-- Center Heart Icon -->
+                <div class="hidden md:flex justify-center items-center text-wedding-gold text-5xl fade-in-section">
+                    <i class="fas fa-heart pulse2"></i>
+                </div>
+
+                <!-- Groom Side -->
+                <div class="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left slide-from-right trigger-slide">
+                    <div class="relative w-full max-w-sm mb-6 group bg-stone-50 rounded-lg overflow-hidden shadow-lg border border-gray-100 p-2">
+                        <img src="https://lh3.googleusercontent.com/d/1716Y_IjHGDa54I9bMj5Mepz2K1tzvE7x" 
+                             alt="Niranjan"
+                             class="w-full h-auto object-contain relative z-10"
+                             onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80';">
+                    </div>
+                    <h3 class="font-serif text-3xl md:text-4xl text-wedding-dark mb-2 font-bold">Niranjan</h3>
+                    <p class="text-gray-700 text-lg max-w-sm">The charming groom. Known for his kindness and ambition.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Wedding Events (REVISED: Side-by-Side Grid Layout for Legibility) -->
+    <section id="events" class="py-16 md:py-24 bg-stone-50 relative overflow-hidden">
+        <!-- Decorative Background Pattern -->
+        <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 20px 20px;"></div>
+        
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="text-center mb-12 md:mb-16 fade-in-section">
+                <i class="fas fa-om text-5xl text-wedding-gold mb-3 opacity-90"></i>
+                <h2 class="font-serif text-4xl md:text-6xl text-wedding-dark mb-4 font-bold">Wedding Itinerary</h2>
+                <div class="w-32 h-1 bg-gradient-to-r from-transparent via-wedding-gold to-transparent mx-auto"></div>
+                <p class="mt-4 text-gray-700 font-serif italic text-xl">Please join us in celebrating these auspicious moments</p>
+            </div>
+
+            <div class="max-w-6xl mx-auto space-y-16">
+                
+                <!-- Day 1 Card -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in-section border border-gray-200 relative">
+                    <!-- Day Header -->
+                    <div class="bg-wedding-dark p-6 md:p-8 text-white relative">
+                        <div class="flex flex-col md:flex-row justify-between items-center relative z-10">
+                            <div class="text-center md:text-left mb-4 md:mb-0">
+                                <h3 class="font-serif text-3xl md:text-4xl tracking-wide font-bold">Friday, 6th March</h3>
+                                <p class="text-wedding-gold font-bold uppercase tracking-widest mt-2 text-base md:text-lg">The Beginning</p>
+                            </div>
+                            <div class="px-6 py-2 border-2 border-wedding-gold rounded-full bg-white/10 backdrop-blur-sm">
+                                <span class="font-mono text-xl md:text-2xl font-bold">2026</span>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-yellow-400 via-purple-500 to-yellow-400"></div>
+                    </div>
+
+                    <!-- Layout Change: Grid for side-by-side events -->
+                    <div class="p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Event 1: Haldi -->
+                        <div class="bg-yellow-50 rounded-xl p-0 shadow-md hover:shadow-xl transition border border-yellow-200 relative overflow-hidden group flex flex-col h-full">
+                            <!-- Integrated Header with Time -->
+                            <div class="bg-yellow-200 p-4 flex justify-between items-center border-b border-yellow-300">
+                                <h4 class="font-serif text-2xl text-yellow-900 font-bold flex items-center gap-2">
+                                    <i class="fas fa-sun text-yellow-700"></i> Haldi
+                                </h4>
+                                <div class="bg-white px-3 py-1 rounded-lg text-yellow-900 font-bold border border-yellow-400 shadow-sm">
+                                    04:00 PM
+                                </div>
+                            </div>
+
+                            <div class="p-6 flex-grow relative">
+                                <!-- Corner Animation -->
+                                <div class="absolute -bottom-6 -right-6 text-yellow-300/40 animate-spin-slow pointer-events-none">
+                                    <i class="fas fa-sun text-9xl"></i>
+                                </div>
+                                
+                                <p class="text-gray-800 text-lg leading-relaxed relative z-10 font-medium">
+                                    A joyous afternoon of turmeric, laughter, and blessings. Get ready to be covered in the color of love!
+                                </p>
+                            </div>
+                            
+                            <!-- Dress Code Footer -->
+                            <div class="bg-white/90 p-5 border-t border-yellow-200 relative z-10">
+                                <p class="text-base font-bold text-yellow-900 uppercase tracking-wide mb-3 flex items-center">
+                                    <i class="fas fa-tshirt mr-2"></i> Dress Code: Bright & Vivid
+                                </p>
+                                <div class="flex flex-col gap-2 text-base">
+                                    <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-yellow-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Ladies: Yellow / Mustard
+                                    </a>
+                                    <a href="https://www.pinterest.com/niranjan2594/haldi-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-yellow-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Gents: Yellow Kurtas
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Event 2: Sangeet -->
+                        <div class="bg-purple-50 rounded-xl p-0 shadow-md hover:shadow-xl transition border border-purple-200 relative overflow-hidden group flex flex-col h-full">
+                            <!-- Integrated Header with Time -->
+                            <div class="bg-purple-200 p-4 flex justify-between items-center border-b border-purple-300">
+                                <h4 class="font-serif text-2xl text-purple-900 font-bold flex items-center gap-2">
+                                    <i class="fas fa-music text-purple-700"></i> Sangeet
+                                </h4>
+                                <div class="bg-white px-3 py-1 rounded-lg text-purple-900 font-bold border border-purple-400 shadow-sm">
+                                    07:00 PM
+                                </div>
+                            </div>
+
+                            <div class="p-6 flex-grow relative">
+                                <!-- Corner Animation -->
+                                <div class="absolute -bottom-6 -right-6 text-purple-300/40 animate-float-music pointer-events-none">
+                                    <i class="fas fa-music text-8xl"></i>
+                                </div>
+                                
+                                <p class="text-gray-800 text-lg leading-relaxed relative z-10 font-medium">
+                                    Put on your dancing shoes! An evening filled with music, performances, and endless celebration.
+                                </p>
+                            </div>
+                            
+                            <!-- Dress Code Footer -->
+                            <div class="bg-white/90 p-5 border-t border-purple-200 relative z-10">
+                                <p class="text-base font-bold text-purple-900 uppercase tracking-wide mb-3 flex items-center">
+                                    <i class="fas fa-user-tie mr-2"></i> Dress Code: Indo-Western
+                                </p>
+                                <div class="flex flex-col gap-2 text-base">
+                                    <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-purple-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Ladies: Lehengas / Gowns
+                                    </a>
+                                    <a href="https://www.pinterest.com/niranjan2594/sangeet-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-purple-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Gents: Mirror Work / Kurtas
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Day 2 Card -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in-section border border-gray-200 relative">
+                    <!-- Day Header -->
+                    <div class="bg-wedding-accent p-6 md:p-8 text-white relative">
+                        <div class="flex flex-col md:flex-row justify-between items-center relative z-10">
+                            <div class="text-center md:text-left mb-4 md:mb-0">
+                                <h3 class="font-serif text-3xl md:text-4xl tracking-wide font-bold">Saturday, 7th March</h3>
+                                <p class="text-white/90 font-bold uppercase tracking-widest mt-2 text-base md:text-lg">The Wedding</p>
+                            </div>
+                            <div class="px-6 py-2 border-2 border-white/50 rounded-full bg-white/10 backdrop-blur-sm">
+                                <span class="font-mono text-xl md:text-2xl font-bold">2026</span>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-orange-400 via-red-300 to-orange-400"></div>
+                    </div>
+
+                    <!-- Layout Change: Grid for side-by-side events -->
+                    <div class="p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Event 3: Rituals -->
+                        <div class="bg-orange-50 rounded-xl p-0 shadow-md hover:shadow-xl transition border border-orange-200 relative overflow-hidden group flex flex-col h-full">
+                            <!-- Integrated Header -->
+                            <div class="bg-orange-200 p-4 flex justify-between items-center border-b border-orange-300">
+                                <h4 class="font-serif text-2xl text-orange-900 font-bold flex items-center gap-2">
+                                    <i class="fas fa-fire text-orange-700"></i> Vedic Rituals
+                                </h4>
+                                <div class="bg-white px-3 py-1 rounded-lg text-orange-900 font-bold border border-orange-400 shadow-sm">
+                                    07:00 AM
+                                </div>
+                            </div>
+
+                            <div class="p-6 flex-grow relative">
+                                <!-- Corner Animation -->
+                                <div class="absolute -bottom-6 -right-6 text-orange-300/40 animate-spin-slow pointer-events-none">
+                                    <i class="fas fa-dharmachakra text-9xl"></i>
+                                </div>
+                                
+                                <p class="text-gray-800 text-lg leading-relaxed relative z-10 font-medium">
+                                    Sacred morning ceremonies to invoke blessings. A spiritual start to our new journey together.
+                                </p>
+                            </div>
+                            
+                            <!-- Dress Code Footer -->
+                            <div class="bg-white/90 p-5 border-t border-orange-200 relative z-10">
+                                <p class="text-base font-bold text-orange-900 uppercase tracking-wide mb-3 flex items-center">
+                                    <i class="fas fa-praying-hands mr-2"></i> Dress Code: Traditional
+                                </p>
+                                <div class="flex flex-col gap-2 text-base">
+                                    <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-orange-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Ladies: Paithani / Silk Saree
+                                    </a>
+                                    <a href="https://www.pinterest.com/niranjan2594/vedic-rituals-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-orange-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Gents: Kurta Dhoti / Waistcoat
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Event 4: Wedding -->
+                        <div class="bg-red-50 rounded-xl p-0 shadow-md hover:shadow-xl transition border border-red-200 relative overflow-hidden group flex flex-col h-full">
+                            <!-- Integrated Header -->
+                            <div class="bg-red-200 p-4 flex justify-between items-center border-b border-red-300">
+                                <h4 class="font-serif text-2xl text-red-900 font-bold flex items-center gap-2">
+                                    <i class="fas fa-crown text-red-700"></i> Varmala
+                                </h4>
+                                <div class="bg-white px-3 py-1 rounded-lg text-red-900 font-bold border border-red-400 shadow-sm">
+                                    11:00 AM
+                                </div>
+                            </div>
+
+                            <div class="p-6 flex-grow relative">
+                                <!-- Corner Animation -->
+                                <div class="absolute -bottom-6 -right-6 text-red-300/40 animate-pulse-slow pointer-events-none">
+                                    <i class="fas fa-heart text-9xl"></i>
+                                </div>
+                                
+                                <p class="text-gray-800 text-lg leading-relaxed relative z-10 font-medium">
+                                    The auspicious moment where two souls become one. Witness the vows and the beginning of forever.
+                                </p>
+                            </div>
+                            
+                            <!-- Dress Code Footer -->
+                            <div class="bg-white/90 p-5 border-t border-red-200 relative z-10">
+                                <p class="text-base font-bold text-red-900 uppercase tracking-wide mb-3 flex items-center">
+                                    <i class="fas fa-heart mr-2"></i> Dress Code: Royal Traditional
+                                </p>
+                                <div class="flex flex-col gap-2 text-base">
+                                    <a href="https://www.pinterest.com/niranjan2594/mangalasthak-outfits-for-ladies/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-red-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Ladies: Heavy Silk Sarees
+                                    </a>
+                                    <a href="https://www.pinterest.com/niranjan2594/mangalashtak-outfits-for-men/" target="_blank" class="flex items-center gap-2 text-gray-800 hover:text-red-700 transition font-semibold group">
+                                        <i class="fab fa-pinterest text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                                        Gents: Modi Jacket / Kurta
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Instagram Section -->
+    <section class="py-16 md:py-24 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-y border-gray-200 overflow-hidden relative">
+        
+        <!-- Animated Background Blobs -->
+        <div class="absolute top-0 left-0 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-32 left-20 w-64 h-64 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-16">
+                
+                <!-- Creative: 3D Floating Card (No Phone Frame) -->
+                <div class="w-full md:w-1/3 max-w-[280px] perspective-1000 relative group">
+                    
+                    <!-- Floating Likes Animation (Decorative) -->
+                    <div class="absolute -right-8 top-10 text-red-500 text-2xl animate-float-up opacity-0" style="animation-delay: 0s;"><i class="fas fa-heart"></i></div>
+                    <div class="absolute -left-6 bottom-20 text-pink-500 text-xl animate-float-up opacity-0" style="animation-delay: 1.5s;"><i class="fas fa-heart"></i></div>
+                    <div class="absolute right-0 -top-4 text-red-400 text-lg animate-float-up opacity-0" style="animation-delay: 3s;"><i class="fas fa-heart"></i></div>
+
+                    <!-- The Clean Card (Removed Bezel/Notch) -->
+                    <div class="relative rounded-[2rem] shadow-2xl transform transition-all duration-500 hover:rotate-y-12 hover:rotate-x-12 hover:shadow-2xl preserve-3d animate-float overflow-hidden bg-white">
+                        <!-- Reflection/Gloss -->
+                        <div class="absolute inset-0 rounded-[2rem] bg-gradient-to-tr from-white/30 to-transparent pointer-events-none z-20"></div>
+
+                        <!-- Screen Content -->
+                        <div class="relative aspect-[9/16] bg-gray-100">
+                            <!-- Image -->
+                            <img src="https://lh3.googleusercontent.com/d/1FjzzgLICORc3WueZdlqrJpMZ9gRrMYB1" 
+                                 alt="Couple Instagram"
+                                 class="w-full h-full object-cover">
+                            
+                            <!-- Gradient Overlay for Text Readability -->
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90"></div>
+
+                            <!-- Username Overlay -->
+                            <div class="absolute bottom-6 inset-x-0 text-center text-white z-10 p-4">
+                                <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30 mb-2 shadow-lg">
+                                    <i class="fab fa-instagram text-pink-400"></i>
+                                    <span class="font-semibold tracking-wide text-sm">@shranjan.stories</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Shadow -->
+                    <div class="absolute -bottom-10 left-1/2 transform -translate-x-1/2 w-40 h-4 bg-black/20 blur-xl rounded-[100%] animate-shadow-pulse"></div>
+                </div>
+
+                <!-- Text Content -->
+                <div class="w-full md:w-1/2 text-center md:text-left fade-in-section">
+                    <div class="inline-flex items-center gap-2 bg-white border border-pink-100 text-pink-600 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide mb-6 shadow-sm">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                        </span>
+                        FOLLOW OUR JOURNEY
+                    </div>
+                    
+                    <h2 class="font-serif text-4xl md:text-6xl text-wedding-dark mb-6 leading-tight font-bold">
+                        Follow <br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500">@shranjan.stories</span>
+                    </h2>
+                    
+                    <p class="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0 font-medium">
+                        We are documenting every step of our forever! From candid bloopers to the magical "I Do", don't miss a single moment.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row items-center gap-6 justify-center md:justify-start">
+                        <a href="https://www.instagram.com/shranjan.stories" target="_blank"
+                            class="group relative inline-flex items-center justify-center px-8 py-4 text-white text-lg font-bold transition-all duration-200 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-full hover:shadow-lg hover:scale-105 active:scale-95">
+                            <i class="fab fa-instagram text-2xl mr-3 group-hover:rotate-12 transition-transform"></i>
+                            <span>View Profile</span>
+                        </a>
+                        
+                        <div class="text-left hidden sm:block">
+                            <p class="text-sm text-gray-500 font-bold uppercase tracking-wider">Official Hashtag</p>
+                            <p class="font-serif text-2xl text-wedding-dark italic">#Shranjan</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            /* Custom Animations for this section */
+            .perspective-1000 { perspective: 1000px; }
+            .preserve-3d { transform-style: preserve-3d; }
+            
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-15px); }
+            }
+            .animate-float { animation: float 6s ease-in-out infinite; }
+
+            @keyframes shadow-pulse {
+                0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.2; }
+                50% { transform: translateX(-50%) scale(0.8); opacity: 0.1; }
+            }
+            .animate-shadow-pulse { animation: shadow-pulse 6s ease-in-out infinite; }
+
+            @keyframes blob {
+                0% { transform: translate(0px, 0px) scale(1); }
+                33% { transform: translate(30px, -50px) scale(1.1); }
+                66% { transform: translate(-20px, 20px) scale(0.9); }
+                100% { transform: translate(0px, 0px) scale(1); }
+            }
+            .animate-blob { animation: blob 7s infinite; }
+            .animation-delay-2000 { animation-delay: 2s; }
+            .animation-delay-4000 { animation-delay: 4s; }
+
+            @keyframes float-up {
+                0% { transform: translateY(0) scale(0.5); opacity: 0; }
+                50% { opacity: 1; }
+                100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
+            }
+            .animate-float-up { animation: float-up 4s ease-in infinite; }
+        </style>
+    </section>
+
+    <!-- 5. Guest Photo Upload Section -->
+    <section class="py-16 md:py-20 bg-wedding-dark text-white relative overflow-hidden">
+        <!-- Decorative background elements -->
+        <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+             <i class="fas fa-camera absolute top-10 right-10 text-6xl transform rotate-12"></i>
+             <i class="fas fa-images absolute bottom-10 left-10 text-6xl transform -rotate-12"></i>
+        </div>
+
+        <div class="container mx-auto px-4 relative z-10 fade-in-section">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-12">
+                
+                <!-- LEFT: Autoplay Video (GIF Style) -->
+                <div class="w-full md:w-5/12 relative h-64 md:h-96 overflow-hidden rounded-2xl border-[6px] border-wedding-gold shadow-2xl transform -rotate-3 hover:rotate-0 transition duration-500 bg-black group">
+                    <!-- Video Iframe -->
+                    <div class="absolute inset-0 w-full h-full pointer-events-none">
+                        <iframe 
+                            src="https://www.youtube.com/embed/KBU_MlZuBQU?autoplay=1&mute=1&controls=0&loop=1&playlist=KBU_MlZuBQU&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1" 
+                            class="w-[300%] h-full -ml-[100%] md:w-full md:h-full md:ml-0 object-cover" 
+                            title="Wedding Loop" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    
+                    <!-- Recording Overlay -->
+                    <div class="absolute top-4 right-4 z-20 flex items-center gap-2 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                        <div class="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                        <span class="text-xs font-mono font-bold tracking-widest text-white">REC</span>
+                    </div>
+                    <div class="absolute bottom-4 left-4 z-20 text-xs font-mono text-white/70">
+                        <i class="fas fa-battery-full mr-1"></i> 100%
+                    </div>
+                </div>
+
+                <!-- RIGHT: Text Content -->
+                <div class="w-full md:w-6/12 text-center md:text-right">
+                    <div class="inline-block p-4 rounded-full border-2 border-wedding-gold mb-6 bg-wedding-dark/50 backdrop-blur-md">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-wedding-gold"></i>
+                    </div>
+                    
+                    <h2 class="font-serif text-4xl md:text-6xl mb-6 text-wedding-gold leading-tight font-bold">
+                        Your Lens,<br> Our Love Story
+                    </h2>
+                    
+                    <p class="text-lg md:text-xl text-gray-300 mb-8 leading-relaxed ml-auto md:ml-20 font-medium">
+                        Did you snap a candid moment? A funny expression? Or a beautiful shot? <br>
+                        We see the wedding through our eyes, but we'd <em>love</em> to see it through yours!
+                    </p>
+
+                    <div class="flex flex-col items-center md:items-end gap-4">
+                        <a href="https://photos.app.goo.gl/VVwenf9MaVZczMhG7" target="_blank"
+                            class="inline-flex items-center gap-3 bg-wedding-gold text-wedding-dark font-bold py-4 px-10 rounded-full text-xl hover:bg-white hover:text-wedding-dark transition transform hover:scale-105 shadow-lg group">
+                            <i class="fas fa-camera-retro text-2xl group-hover:rotate-12 transition"></i>
+                            <span>Upload Photos</span>
+                        </a>
+                        <p class="text-sm text-gray-400 font-mono font-bold">
+                            <i class="fab fa-google"></i> Opens Google Photos Album
+                        </p>
+                    </div>
+
+                    <div class="mt-12 pt-8 border-t border-gray-700 w-full">
+                        <p class="font-serif italic text-lg text-gray-400">
+                            "Thank you for being a part of our event – we hope these memories bring a smile to your face!"
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Interactive Engagement Gallery -->
+    <section id="gallery" class="py-16 md:py-20 bg-white">
+        <div class="container mx-auto px-4 text-center">
+            <div class="fade-in-section mb-12">
+                <h2 class="font-serif text-4xl text-wedding-dark mb-4 font-bold">Moments to Cherish</h2>
+                <div class="w-24 h-1 bg-wedding-gold mx-auto mb-4"></div>
+                <p class="text-gray-600 font-medium">A glimpse into our engagement</p>
+            </div>
+            
+            <div class="fade-in-section w-full max-w-6xl mx-auto">
+                <div class="flex-gallery-container">
+                    
+                    <!-- Image 1 -->
+                    <div class="flex-gallery-item" onclick="openLightbox(this.querySelector('img'))">
+                        <img src="https://lh3.googleusercontent.com/d/13R1IvjhTicflCz2WOQ6AhKLVt-4SsDly" alt="Engagement Moment 1">
+                        <div class="gallery-caption">
+                            <p class="font-serif text-lg">Together</p>
+                        </div>
+                    </div>
+
+                    <!-- Image 2 -->
+                    <div class="flex-gallery-item" onclick="openLightbox(this.querySelector('img'))">
+                        <img src="https://lh3.googleusercontent.com/d/1AbEVn6jVy00k9ZX6eukksitl6I1Vc-I0" alt="Engagement Moment 2">
+                        <div class="gallery-caption">
+                            <p class="font-serif text-lg">Smiles</p>
+                        </div>
+                    </div>
+
+                    <!-- Image 3 (Your Useable Link) -->
+                    <div class="flex-gallery-item" onclick="openLightbox(this.querySelector('img'))">
+                        <img src="https://lh3.googleusercontent.com/d/1NB_dz8jMX3YFyQmlRcpb2ePv7vgRcSo8" alt="Engagement Moment 3">
+                        <div class="gallery-caption">
+                            <p class="font-serif text-lg">Forever</p>
+                        </div>
+                    </div>
+
+                    <!-- Image 4 -->
+                    <div class="flex-gallery-item" onclick="openLightbox(this.querySelector('img'))">
+                        <img src="https://lh3.googleusercontent.com/d/1Il0v95Zk51JWEtRCx5Hr6cpdNGOcSc1z" alt="Engagement Moment 4">
+                        <div class="gallery-caption">
+                            <p class="font-serif text-lg">Joy</p>
+                        </div>
+                    </div>
+
+                    <!-- Image 5 -->
+                    <div class="flex-gallery-item" onclick="openLightbox(this.querySelector('img'))">
+                        <img src="https://lh3.googleusercontent.com/d/1OnlGN6Kdty2feuz513FWLy7dAWPsc8cZ" alt="Engagement Moment 5">
+                        <div class="gallery-caption">
+                            <p class="font-serif text-lg">Us</p>
+                        </div>
+                    </div>
+
+                    <!-- Image 6 -->
+                    <div class="flex-gallery-item" onclick="openLightbox(this.querySelector('img'))">
+                        <img src="https://lh3.googleusercontent.com/d/12gO1a4QgqqB199llfqWK93qpLW04xAWU" alt="Engagement Moment 6">
+                        <div class="gallery-caption">
+                            <p class="font-serif text-lg">Love</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-4 text-sm text-gray-500 hidden md:block font-bold">Hover to expand • Click to enlarge</p>
+                <p class="mt-4 text-sm text-gray-500 md:hidden font-bold">Swipe to see more • Tap to enlarge</p>
+            </div>
+
+            <!-- Creative Link to Full Album -->
+            <div class="mt-12 fade-in-section">
+                <a href="https://drive.google.com/drive/folders/1EolKWAtxa7Rjb7Hd7T8-NAU8NP8WW8jW" target="_blank"
+                    class="inline-flex items-center gap-3 px-8 py-3 border-2 border-wedding-gold text-wedding-gold rounded-full font-serif text-lg hover:bg-wedding-gold hover:text-white transition-all duration-300 transform hover:-translate-y-1 shadow-sm hover:shadow-xl group no-underline font-bold">
+                    <i class="fab fa-google-drive text-xl group-hover:scale-110 transition-transform"></i>
+                    <span>View Full Engagement Album</span>
+                    <i class="fas fa-arrow-right opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300"></i>
+                </a>
+                <p class="mt-3 text-sm text-gray-500 font-sans tracking-wide">Browse more memories on Google Drive</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. NEW Video Section -->
+    <section class="py-16 md:py-20 bg-black text-white text-center">
+        <div class="container mx-auto px-4">
+             <div class="fade-in-section mb-10">
+                <h2 class="font-serif text-4xl text-wedding-gold mb-4 font-bold">Our Story in Motion</h2>
+                <div class="w-24 h-1 bg-white mx-auto mb-6"></div>
+                <p class="text-gray-400 font-medium">Watch the highlights</p>
+            </div>
+            
+            <div class="max-w-4xl mx-auto aspect-video rounded-lg overflow-hidden shadow-2xl border border-gray-800 fade-in-section">
+                <!-- Autoplay on mute added -->
+                <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src="https://www.youtube-nocookie.com/embed/yo7rClCSay4?rel=0&modestbranding=1&playsinline=1&autoplay=1&mute=1" 
+                    title="Our Story in Motion" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8. Guestbook Section (Moved) -->
+    <section class="py-12 md:py-20 bg-wedding-gold bg-opacity-10">
+        <div class="container mx-auto px-4 text-center">
+            <div class="fade-in-section max-w-4xl mx-auto mb-8">
+                <i class="fas fa-magic text-wedding-gold text-2xl mb-2"></i>
+                <h2 class="font-serif text-3xl text-wedding-dark mb-2 font-bold">Wedding Guestbook</h2>
+                <p class="text-base text-gray-700 mb-6 font-medium">Share your love, wishes, and advice!</p>
+                
+                <!-- New Compact Form -->
+                <div class="bg-white p-5 rounded-xl shadow-lg relative z-20 text-left border border-gray-100">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        <!-- Left Column: Details -->
+                        <div class="md:col-span-4 flex flex-col gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Your Name</label>
+                                <input type="text" id="guestName" class="w-full bg-gray-50 border border-gray-300 rounded p-3 text-base focus:outline-none focus:border-wedding-gold transition" placeholder="Name">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Relationship</label>
+                                <div class="relative">
+                                    <select id="relationship" class="w-full bg-gray-50 border border-gray-300 rounded p-3 text-base appearance-none focus:outline-none focus:border-wedding-gold transition">
+                                        <option value="">Select...</option>
+                                        <option value="Childhood Friend">Childhood Friend</option>
+                                        <option value="College Friend">College Friend</option>
+                                        <option value="Cousin">Cousin</option>
+                                        <option value="Colleague">Colleague</option>
+                                        <option value="Family Friend">Family Friend</option>
+                                        <option value="Relative">Relative</option>
+                                        <option value="Well Wisher">Well Wisher</option>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                        <i class="fas fa-chevron-down text-sm"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="toggleAITools()" class="mt-auto text-sm text-indigo-700 font-bold hover:text-indigo-900 bg-indigo-50 py-3 rounded transition flex items-center justify-center gap-1 border border-indigo-200">
+                                <i class="fas fa-magic"></i> Help me write
+                            </button>
+                        </div>
+
+                        <!-- Right Column: Message -->
+                        <div class="md:col-span-8 flex flex-col">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Your Message</label>
+                            
+                            <!-- Compact AI Panel -->
+                            <div id="aiToolsPanel" class="hidden bg-indigo-50 p-3 rounded mb-2 border border-indigo-200 text-sm transition-all">
+                                <div class="flex gap-2 items-center">
+                                    <select id="wishTone" class="flex-1 bg-white border border-indigo-300 rounded p-2 text-sm focus:outline-none">
+                                        <option value="Heartfelt & Emotional">Tone: Heartfelt</option>
+                                        <option value="Funny & Witty">Tone: Funny</option>
+                                        <option value="Short & Sweet">Tone: Short</option>
+                                        <option value="Poetic & Traditional">Tone: Poetic</option>
+                                        <option value="Movie Quote Style">Tone: Filmy</option>
+                                    </select>
+                                    <button onclick="generateWish()" id="wishBtn" class="bg-indigo-600 text-white px-4 py-2 rounded font-bold hover:bg-indigo-700 transition shadow-sm whitespace-nowrap">
+                                        Go
+                                    </button>
+                                </div>
+                            </div>
+
+                            <textarea id="finalWishInput" class="flex-grow w-full h-32 md:h-auto bg-gray-50 border border-gray-300 rounded p-3 text-base focus:outline-none focus:border-wedding-gold focus:bg-white transition resize-none leading-relaxed" placeholder="Write your beautiful message here..."></textarea>
+                        </div>
+                    </div>
+
+                    <button onclick="submitWishToDB()" id="submitWishBtn" class="mt-4 w-full bg-wedding-dark text-white py-4 rounded-lg font-bold text-lg hover:bg-gray-800 transition shadow flex items-center justify-center gap-2">
+                        <i class="fas fa-pen-fancy"></i> Sign Guestbook
+                    </button>
+                </div> 
+
+                <button onclick="openLogModal()" class="mt-4 text-sm text-gray-600 underline hover:text-wedding-dark font-bold">
+                    <i class="fas fa-file-alt mr-1"></i> View Guestbook Log
+                </button>
+            </div>
+
+            <div class="fade-in-section max-w-5xl mx-auto mt-8">
+                <h3 class="font-serif text-2xl text-wedding-dark mb-6 font-bold"><i class="fas fa-heart text-red-500 mr-2"></i>Love Notes</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="wishesContainer"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 9. Location Section (Moved) -->
+    <section id="location" class="py-16 md:py-20 bg-stone-100">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12 fade-in-section">
+                <h2 class="font-serif text-4xl text-wedding-dark mb-4 font-bold">The Venue</h2>
+                <p class="text-2xl font-bold text-gray-800">GMK Banquets and Lawns, Ravet</p>
+                <p class="text-gray-600 text-lg">Pune, Maharashtra</p>
+            </div>
+            
+            <div class="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto">
+                <div class="w-full md:w-2/3 shadow-xl rounded-lg overflow-hidden fade-in-section h-64 md:h-96">
+                    <iframe 
+                        width="100%" height="100%" frameborder="0" style="border:0"
+                        src="https://maps.google.com/maps?q=GMK%20Banquets%20and%20Lawns%2C%20Ravet%2C%20Pune&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen>
+                    </iframe>
+                </div>
+                <div class="w-full md:w-1/3 flex flex-col justify-center space-y-4 fade-in-section">
+                    <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                        <h3 class="font-serif text-2xl mb-4 font-bold">Getting There</h3>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=GMK+Banquets+and+Lawns+Ravet" target="_blank" 
+                             class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded mb-4 transition duration-300 text-lg">
+                            <i class="fas fa-directions mr-2"></i> Get Directions
+                        </a>
+                        <a href="https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=GMK%20Banquets%20and%20Lawns%2C%20Ravet%2C%20Pune%2C%20Maharashtra&dropoff[nickname]=GMK%20Banquets%20and%20Lawns" target="_blank"
+                           class="block w-full bg-black hover:bg-gray-800 text-white font-bold py-4 px-4 rounded transition duration-300 text-lg">
+                            <i class="fab fa-uber mr-2"></i> Book an Uber
+                        </a>
+                        <p class="text-sm text-gray-500 mt-2 font-medium">Uber link opens app on mobile</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-wedding-dark text-white py-8">
+        <div class="container mx-auto">
+            <div class="col-sm-12 text-center content">
+                <span class="to-top-wrapper">
+                    <a href="#top" class="to-top"><i class="fa fa-angle-up"></i></a>
+                </span>
+                <p class="text-lg">Crafted by Niranjan with lots of <span class="fa fa-heart pulse2"></span> for Shraddha</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chat Widget -->
+    <div class="chat-widget">
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-header">
+                <span><i class="fas fa-robot mr-2"></i>Wedding Assistant</span>
+                <i class="fas fa-times cursor-pointer" onclick="toggleChat()"></i>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    Hello! I'm Niranjan & Shraddha's AI Wedding Assistant. Ask me anything about the events, dress code, or venue! ✨
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">AI is typing...</div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Ask a question..." onkeypress="handleKeyPress(event)">
+                <div class="chat-send" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+            </div>
+        </div>
+        <div class="chat-button" onclick="toggleChat()">
+            <i class="fas fa-comment-dots"></i>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
+        <span class="close-lightbox" onclick="closeLightbox(event)">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
+    <!-- Log Modal -->
+    <div id="logModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold font-serif text-wedding-dark">Guestbook Log</h3>
+                <button onclick="closeLogModal()" class="text-gray-500 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">You can copy the text below and paste it into a Google Doc.</p>
+            <div id="logContent" class="space-y-4"></div>
+            <div class="mt-4 text-right">
+                <button onclick="closeLogModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        
+        window.addEventListener('scroll', () => {
+            const heroImage = document.getElementById('hero-image');
+            if (heroImage) {
+                const scrollPos = window.scrollY;
+                // ADJUSTED: Smoother zoom starting from 1.0 to minimize cropping
+                let scale = 1.0 + (scrollPos * 0.0002);
+                if (scale < 1) scale = 1;
+                heroImage.style.transform = `scale(${scale})`;
+            }
+        });
+
+        async function callGeminiAPI(userPrompt, systemInstruction) {
+    try {
+      const response = await fetch(
+        "https://geminiproxy-tthitannbq-uc.a.run.app",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            prompt: userPrompt,
+            systemInstruction: systemInstruction
+          })
+        }
+      );
+
+      // 🔒 HARD CHECK (this was missing)
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Gemini proxy error:", response.status, text);
+        return "✨ (Temporary issue) Please try again in a moment.";
+      }
+
+      const data = await response.json();
+      return (
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "Sorry, I couldn’t generate a response."
+      );
+    } catch (error) {
+      console.error("AI fetch failed:", error);
+      return "✨ (Offline) The AI assistant is currently taking a nap. You can still write your wish manually!";
+    }
+}
+
+        function toggleAITools() {
+            const panel = document.getElementById('aiToolsPanel');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        async function generateWish() {
+            const name = document.getElementById('guestName').value || "A Guest";
+            const relationship = document.getElementById('relationship').value || "Friend";
+            const tone = document.getElementById('wishTone').value;
+            const btn = document.getElementById('wishBtn');
+            const textArea = document.getElementById('finalWishInput');
+            
+            // Validation
+            if (!document.getElementById('guestName').value) {
+                alert("Please enter your name first so the AI knows who is writing!");
+                document.getElementById('guestName').focus();
+                return;
+            }
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Writing...';
+            btn.disabled = true;
+
+            const systemPrompt =`You are a warm, funny, and 'Desi' wedding guest at an Indian wedding. 
+            Mix English with a little Hindi/Marathi slang like 'Arre', 'Badhai Ho', 'Mast', 'Ek Number'.
+            Context: Niranjan & Shraddha's wedding in Pune.  
+            Tone: ${tone}.  
+            Keep it short (under 40 words).`;
+            
+            const userPrompt = `Write a ${tone} wedding wish for Niranjan and Shraddha from ${name}, who is their ${relationship}.`;
+
+            const wish = await callGeminiAPI(userPrompt, systemPrompt);
+            textArea.value = wish;
+            
+            // Visual feedback
+            textArea.classList.add('ring-2', 'ring-indigo-500');
+            setTimeout(() => textArea.classList.remove('ring-2', 'ring-indigo-500'), 1000);
+
+            btn.innerHTML = '<span>✨ Regenerate</span>';
+            btn.disabled = false;
+        }
+
+        async function submitWishToDB() {
+            const name = document.getElementById('guestName').value;
+            const relationship = document.getElementById('relationship').value;
+            const text = document.getElementById('finalWishInput').value;
+            const btn = document.getElementById('submitWishBtn');
+
+            if(!name || !text) { alert("Please enter your name and a message!"); return; }
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+            btn.disabled = true;
+
+            if (window.saveWishToFirestore) {
+                const success = await window.saveWishToFirestore(name, relationship, text);
+                if (success) {
+                    btn.innerHTML = '<i class="fas fa-check mr-2"></i> Saved!';
+                    setTimeout(() => {
+                        document.getElementById('finalWishInput').value = '';
+                        btn.innerHTML = '<i class="fas fa-pen-fancy mr-2"></i> Sign Guestbook';
+                        btn.disabled = false;
+                        alert("Thank you! Your wish has been added to the guestbook.");
+                    }, 1500);
+                } else {
+                    btn.innerHTML = 'Error. Try Again.';
+                    btn.disabled = false;
+                }
+            } else {
+                console.error("Firestore not initialized yet");
+                const localPool = window.getWishPool();
+                if(localPool) localPool.unshift({name, text});
+                btn.innerHTML = '❤️ Saved (Preview)';
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = '❤️ Sign Guestbook'; }, 2000);
+            }
+        }
+
+        function openLogModal() {
+            const modal = document.getElementById('logModal');
+            const content = document.getElementById('logContent');
+            const pool = window.getWishPool() || [];
+            content.innerHTML = '';
+            pool.forEach(wish => {
+                content.innerHTML += `
+                    <div class="log-entry">
+                        <p class="font-bold text-wedding-dark">${wish.name} <span class="text-xs text-gray-400 font-normal">(${wish.relationship || 'Guest'})</span></p>
+                        <p class="text-gray-700 italic">"${wish.text}"</p>
+                    </div>
+                `;
+            });
+            modal.style.display = 'flex';
+        }
+
+        function closeLogModal() { document.getElementById('logModal').style.display = 'none'; }
+
+        function toggleChat() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.style.display = (chatWindow.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const messages = document.getElementById('chatMessages');
+            const typing = document.getElementById('typingIndicator');
+            const text = input.value.trim();
+
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            input.value = '';
+            typing.style.display = 'block';
+            messages.scrollTop = messages.scrollHeight;
+
+            const systemContext = `
+                You are a 'Local Buddy' wedding assistant for Niranjan and Shraddha's wedding in Pune. 
+                
+                **PERSONA:**
+                - You speak primarily in English but sprinkle in occasional Hindi and Marathi (Puneri style).
+                - Use words like: "Arre", "Bhaau" (Brother), "Mast" (Great), "Ek Number" (Awesome), "Jevlis Ka?" (Did you eat?), "Khup Chan" (Very nice).
+                - **FORMATTING RULE:** Write all Hindi/Marathi words in plain text. Do NOT use italics (like this) or asterisks around them. They should blend seamlessly with the English text.
+                - **IMPORTANT:** Do NOT use slang in every single sentence. Use it naturally and sparingly to avoid sounding repetitive or robotic.
+                - Tone: Friendly, enthusiastic, informal but helpful.
+                - Be a true Puneri friend, but keep it balanced!
+
+                **WEDDING DETAILS:**
+                - Dates: March 6th and 7th, 2026.
+                - Location: GMK Banquets and Lawns, Ravet.
+                - Schedule: March 6th: Haldi (4pm), Sangeet (7pm). March 7th: Rituals (7am), Varmala (11am).
+                - Dress Code: Haldi (Yellow), Sangeet (Indo-Western), Wedding (Traditional/Peshwai).
+
+                **EXAMPLE RESPONSES:**
+                - User: "Where is the wedding?" -> AI: "It's at GMK Banquets in Ravet. Mast location hai! Need directions?"
+                - User: "What should I wear?" -> AI: "For Sangeet, go for an Indo-Western look. And for Haldi, definitely something yellow!"
+            `;
+
+            const response = await callGeminiAPI(text, systemContext);
+            typing.style.display = 'none';
+            appendMessage(response, 'bot');
+        }
+
+        function appendMessage(text, type) {
+            const messages = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.innerText = text;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Lightbox
+        function openLightbox(img) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            lightbox.style.display = 'block';
+            lightboxImg.src = img.src;
+        }
+
+        function closeLightbox(e) {
+            if (e.target.id === 'lightbox' || e.target.classList.contains('close-lightbox')) {
+                document.getElementById('lightbox').style.display = 'none';
+            }
+        }
+        
+        // Wish UI Updaters
+        window.updateUIWithWishes = function() {
+            const pool = window.getWishPool();
+            const container = document.getElementById('wishesContainer');
+            if (!container || !pool) return;
+            
+            // Re-render completely if first load or manually triggered
+            // For smoother updates, we check existing content 
+            if (container.children.length === 0) { 
+                initWishRotation(); 
+            }
+        };
+
+        function createWishCard(name, text) {
+            return `
+                <div class="wish-card bg-white p-4 rounded-lg shadow hover:shadow-lg h-full border-t-4 border-wedding-gold flex flex-col justify-between">
+                    <p class="text-gray-600 italic text-sm mb-3">"${text}"</p>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 rounded-full bg-wedding-rose flex items-center justify-center text-wedding-accent font-bold text-xs mr-2">
+                            ${name.charAt(0)}
+                        </div>
+                        <span class="font-bold text-xs text-wedding-dark">- ${name}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function initWishRotation() {
+            const container = document.getElementById('wishesContainer');
+            const pool = window.getWishPool() || [];
+            
+            const render = () => {
+                container.innerHTML = '';
+                if(pool.length === 0) return;
+                
+                // STRICTLY enforce exactly 3 slots for visibility
+                for(let i=0; i<3; i++) {
+                    const wish = pool[i % pool.length];
+                    const cardWrapper = document.createElement('div');
+                    cardWrapper.id = `wish-slot-${i}`;
+                    cardWrapper.innerHTML = createWishCard(wish.name, wish.text);
+                    container.appendChild(cardWrapper);
+                }
+            };
+            render();
+            
+            // Rotation interval
+            if (!window.rotationInterval) {
+                window.rotationInterval = setInterval(() => {
+                    const currentPool = window.getWishPool() || [];
+                    if(currentPool.length === 0) return;
+                    
+                    // Randomly update one of the 3 slots
+                    const slotIndex = Math.floor(Math.random() * 3);
+                    updateSlot(slotIndex, currentPool);
+                }, 4000);
+            }
+        }
+
+        function updateSlot(slotIndex, pool) {
+            const slot = document.getElementById(`wish-slot-${slotIndex}`);
+            if(!slot) return;
+            
+            const randomWish = pool[Math.floor(Math.random() * pool.length)];
+            const card = slot.querySelector('.wish-card');
+            
+            if(card) {
+                card.classList.add('hidden-wish');
+                setTimeout(() => {
+                    slot.innerHTML = createWishCard(randomWish.name, randomWish.text);
+                    const newCard = slot.querySelector('.wish-card');
+                    newCard.classList.add('hidden-wish');
+                    void newCard.offsetWidth; 
+                    newCard.classList.remove('hidden-wish');
+                }, 1000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        entry.target.classList.add('slide-active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.fade-in-section').forEach(el => observer.observe(el));
+            document.querySelectorAll('.trigger-slide').forEach(el => observer.observe(el));
+            
+            initWishRotation();
+            startCountdown(); // Start the countdown
+        });
+
+        function startCountdown() {
+            // Target Date: March 6, 2026
+            const weddingDate = new Date("March 6, 2026 00:00:00").getTime();
+
+            const x = setInterval(function() {
+                const now = new Date().getTime();
+                const distance = weddingDate - now;
+
+                if (distance < 0) {
+                    clearInterval(x);
+                    document.getElementById("countdown").innerHTML = "<div class='text-2xl font-serif text-wedding-gold'>Happily Married! ❤️</div>";
+                    return;
+                }
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                document.getElementById("days").innerText = days < 10 ? "0" + days : days;
+                document.getElementById("hours").innerText = hours < 10 ? "0" + hours : hours;
+                document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
+                document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
