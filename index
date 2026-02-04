@@ -50,15 +50,21 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- YOUR PERSONAL FIREBASE CONFIGURATION (For Export) ---
-        const yourFirebaseConfig = {
-            apiKey: "AIzaSyDwzZ10tkDqjkNv9jQRfHClLFHjCxv44RQ",
-            authDomain: "shranjan-100c2.firebaseapp.com",
-            projectId: "shranjan-100c2",
-            storageBucket: "shranjan-100c2.firebasestorage.app",
-            messagingSenderId: "733304394682",
-            appId: "1:733304394682:web:20d4002581dc6e7dbec383"
-        };
+        // Your web app's Firebase configuration
+const firebaseConfig = {
+
+  apiKey: "AIzaSyBU80iwakCAbeevJfTBU3PbGrKjB7O0vJc",
+
+  authDomain: "shranjan-updated.firebaseapp.com",
+
+  projectId: "shranjan-updated",
+
+  storageBucket: "shranjan-updated.firebasestorage.app",
+
+  messagingSenderId: "882280319909",
+
+  appId: "1:882280319909:web:eec99f7a938461de6af64c"
+};
 
         // --- LOGIC TO SWITCH BETWEEN PREVIEW AND YOUR DATABASE ---
         let app, auth, db, wishesCollection;
