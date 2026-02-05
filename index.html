@@ -90,8 +90,8 @@ const firebaseConfig = {
                 app = initializeApp(firebaseConfig);
                 useInternal = true;
                 console.log("Using Canvas Preview Firebase");
-            } else if (yourFirebaseConfig.apiKey) {
-                app = initializeApp(yourFirebaseConfig);
+            } else if (firebaseConfig.apiKey) {
+                app = initializeApp(firebaseConfig);
                 console.log("Using YOUR Personal Firebase (Shranjan Project)");
             } else {
                 console.warn("No Firebase configuration found.");
@@ -160,12 +160,20 @@ const firebaseConfig = {
         }
 
         window.saveWishToFirestore = async (name, relationship, text) => {
-            // If offline or setup failed, save locally
+            // Wait briefly for auth/collection bootstrap so wishes are saved to Firebase whenever possible.
+            if (!offlineMode && (!wishesCollection || !currentUser)) {
+                for (let attempt = 0; attempt < 10; attempt++) {
+                    await new Promise((resolve) => setTimeout(resolve, 250));
+                    if (wishesCollection && currentUser) break;
+                }
+            }
+
+            // If offline or setup failed, save locally.
             if (!wishesCollection || offlineMode || !currentUser) {
                 console.log("Saving locally (Offline Mode)");
                 localWishPool.unshift({ name, relationship, text });
                 if (window.updateUIWithWishes) window.updateUIWithWishes();
-                return true; 
+                return true;
             }
 
             try {
@@ -176,7 +184,7 @@ const firebaseConfig = {
                 // Fallback local save
                 localWishPool.unshift({ name, relationship, text });
                 if (window.updateUIWithWishes) window.updateUIWithWishes();
-                return true; 
+                return true;
             }
         };
 
