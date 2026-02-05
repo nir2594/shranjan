@@ -246,28 +246,7 @@
         }
         .to-top:hover { background: #2C3E50; color: white; }
 
-        .chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; }
-        .chat-button {
-            width: 60px; height: 60px; border-radius: 50%; background: #D4AF37; color: white;
-            display: flex; justify-content: center; align-items: center; font-size: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.3s;
-        }
-        .chat-button:hover { transform: scale(1.1); }
-        .chat-window {
-            width: 300px; max-width: 90vw; height: 400px; background: white; border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2); margin-bottom: 16px; display: none;
-            flex-direction: column; overflow: hidden; border: 1px solid #e5e7eb;
-        }
-        @media (max-width: 480px) { .chat-window { width: 85vw; right: 0; } }
-        .chat-header { background: #2C3E50; color: white; padding: 12px 16px; font-family: 'Playfair Display', serif; display: flex; justify-content: space-between; align-items: center; }
-        .chat-messages { flex-grow: 1; padding: 12px; overflow-y: auto; background: #f9fafb; font-size: 14px; }
-        .chat-input-area { padding: 10px; border-top: 1px solid #e5e7eb; display: flex; background: white; }
-        .chat-input { flex-grow: 1; border: 1px solid #d1d5db; border-radius: 20px; padding: 8px 12px; font-size: 14px; outline: none; }
-        .chat-send { margin-left: 8px; color: #D4AF37; font-size: 18px; cursor: pointer; padding: 8px; }
-        .message { margin-bottom: 10px; max-width: 80%; padding: 8px 12px; border-radius: 12px; line-height: 1.4; }
-        .message.bot { background: #e5e7eb; color: #374151; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .message.user { background: #D4AF37; color: white; align-self: flex-end; border-bottom-right-radius: 2px; margin-left: auto; }
-        .typing-indicator { font-size: 12px; color: #9ca3af; margin-left: 10px; display: none; }
+        /* Chat styles removed as feature was removed */
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 24px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
@@ -353,6 +332,33 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Flash Gallery Styles */
+        .flash-frame {
+            position: relative;
+            width: 90px;
+            height: 120px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 3px solid white;
+        }
+        @media (min-width: 768px) {
+            .flash-frame { width: 140px; height: 180px; }
+        }
+        
+        .flash-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            /* SMOOTHER TRANSITION: Increased to 2 seconds */
+            transition: opacity 2s ease-in-out;
+        }
+        .flash-img.visible { opacity: 1; }
 
         /* Mobile Styles for Gallery (Horizontal Scroll) */
         @media (max-width: 768px) {
@@ -996,8 +1002,9 @@
     </section>
 
     <!-- 6. Interactive Engagement Gallery -->
-    <section id="gallery" class="py-16 md:py-20 bg-white">
-        <div class="container mx-auto px-4 text-center">
+    <section id="gallery" class="py-16 md:py-20 bg-white relative overflow-hidden">
+        
+        <div class="container mx-auto px-4 text-center relative z-10">
             <div class="fade-in-section mb-12">
                 <h2 class="font-serif text-4xl text-wedding-dark mb-4">Moments to Cherish</h2>
                 <div class="w-24 h-1 bg-wedding-gold mx-auto mb-4"></div>
@@ -1058,6 +1065,14 @@
                 </div>
                 <p class="mt-4 text-xs text-gray-400 hidden md:block">Hover to expand • Click to enlarge</p>
                 <p class="mt-4 text-xs text-gray-400 md:hidden">Swipe to see more • Tap to enlarge</p>
+                
+                <!-- NEW Flash Strip Container -->
+                <div class="mt-8">
+                    <h3 class="font-serif text-xl text-gray-400 mb-4 italic">More Candid Memories</h3>
+                    <div id="flash-strip" class="flex justify-center gap-3 flex-wrap">
+                        <!-- Flash Frames injected by JS -->
+                    </div>
+                </div>
             </div>
     </section>
 
@@ -1120,31 +1135,12 @@
                                     </div>
                                 </div>
                             </div>
-                            <button onclick="toggleAITools()" class="mt-auto text-xs text-indigo-600 font-bold hover:text-indigo-800 bg-indigo-50 py-2 rounded transition flex items-center justify-center gap-1 border border-indigo-100">
-                                <i class="fas fa-magic"></i> Help me write
-                            </button>
                         </div>
 
                         <!-- Right Column: Message -->
                         <div class="md:col-span-8 flex flex-col">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Your Message</label>
                             
-                            <!-- Compact AI Panel -->
-                            <div id="aiToolsPanel" class="hidden bg-indigo-50 p-2 rounded mb-2 border border-indigo-100 text-xs transition-all">
-                                <div class="flex gap-2 items-center">
-                                    <select id="wishTone" class="flex-1 bg-white border border-indigo-200 rounded p-1 text-xs focus:outline-none">
-                                        <option value="Heartfelt & Emotional">Tone: Heartfelt</option>
-                                        <option value="Funny & Witty">Tone: Funny</option>
-                                        <option value="Short & Sweet">Tone: Short</option>
-                                        <option value="Poetic & Traditional">Tone: Poetic</option>
-                                        <option value="Movie Quote Style">Tone: Filmy</option>
-                                    </select>
-                                    <button onclick="generateWish()" id="wishBtn" class="bg-indigo-600 text-white px-3 py-1 rounded font-bold hover:bg-indigo-700 transition shadow-sm whitespace-nowrap">
-                                        Go
-                                    </button>
-                                </div>
-                            </div>
-
                             <textarea id="finalWishInput" class="flex-grow w-full h-32 md:h-auto bg-gray-50 border border-gray-200 rounded p-3 text-sm focus:outline-none focus:border-wedding-gold focus:bg-white transition resize-none leading-relaxed" placeholder="Write your beautiful message here..."></textarea>
                         </div>
                     </div>
@@ -1212,31 +1208,6 @@
         </div>
     </footer>
 
-    <!-- Chat Widget -->
-    <div class="chat-widget">
-        <div class="chat-window" id="chatWindow">
-            <div class="chat-header">
-                <span><i class="fas fa-robot mr-2"></i>Wedding Assistant</span>
-                <i class="fas fa-times cursor-pointer" onclick="toggleChat()"></i>
-            </div>
-            <div class="chat-messages" id="chatMessages">
-                <div class="message bot">
-                    Hello! I'm Niranjan & Shraddha's AI Wedding Assistant. Ask me anything about the events, dress code, or venue! ✨
-                </div>
-            </div>
-            <div class="typing-indicator" id="typingIndicator">AI is typing...</div>
-            <div class="chat-input-area">
-                <input type="text" id="chatInput" class="chat-input" placeholder="Ask a question..." onkeypress="handleKeyPress(event)">
-                <div class="chat-send" onclick="sendMessage()">
-                    <i class="fas fa-paper-plane"></i>
-                </div>
-            </div>
-        </div>
-        <div class="chat-button" onclick="toggleChat()">
-            <i class="fas fa-comment-dots"></i>
-        </div>
-    </div>
-
     <!-- Lightbox Modal -->
     <div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
         <span class="close-lightbox" onclick="closeLightbox(event)">&times;</span>
@@ -1260,11 +1231,6 @@
 
     <!-- Scripts -->
     <script>
-        // --- API Keys Configured Here ---
-        // ⚠️ NOTE: The specific key you provided ("AIza...B3LQ") returned a 403 Error (Referrer Blocked).
-        // This means it is restricted to specific domains and cannot run on this preview site.
-        // I have reverted to the system key ("") to ensure the Chatbot works immediately.
-        const apiKey = ""; 
         
         // Navbar Scroll Effect & Mobile Menu
         window.addEventListener('scroll', () => {
@@ -1292,86 +1258,6 @@
                 heroImage.style.transform = `scale(${scale})`;
             }
         });
-
-        async function callGeminiAPI(userPrompt, systemInstruction) {
-            // Check if we are using the system key or a custom one
-            const keyToUse = apiKey; 
-            
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${keyToUse}`;
-            const payload = {
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: systemInstruction }] }
-            };
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    const errorDetails = await response.text();
-                    console.error("❌ Gemini API Error:", response.status, errorDetails);
-                    
-                    if (response.status === 403) {
-                        return "⚠️ (Error) The API Key is blocked by security settings (Referrer Restriction). Please use an unrestricted key or the default system key.";
-                    }
-                    throw new Error(`API Error: ${response.status}`);
-                }
-
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
-            } catch (error) {
-                console.error("Gemini Failure:", error);
-                return "✨ (Offline) The AI assistant is currently taking a nap. You can still write your wish manually!"; 
-            }
-        }
-
-        function toggleAITools() {
-            const panel = document.getElementById('aiToolsPanel');
-            if (panel.classList.contains('hidden')) {
-                panel.classList.remove('hidden');
-            } else {
-                panel.classList.add('hidden');
-            }
-        }
-
-        async function generateWish() {
-            const name = document.getElementById('guestName').value || "A Guest";
-            const relationship = document.getElementById('relationship').value || "Friend";
-            const tone = document.getElementById('wishTone').value;
-            const btn = document.getElementById('wishBtn');
-            const textArea = document.getElementById('finalWishInput');
-            
-            // Validation
-            if (!document.getElementById('guestName').value) {
-                alert("Please enter your name first so the AI knows who is writing!");
-                document.getElementById('guestName').focus();
-                return;
-            }
-
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Writing...';
-            btn.disabled = true;
-
-            const systemPrompt = `You are a warm, funny, and 'Desi' wedding guest at an Indian wedding. 
-            Mix English with a little Hindi/Marathi slang like 'Arre', 'Badhai Ho', 'Mast', 'Ek Number'. 
-            Context: Niranjan & Shraddha's wedding in Pune. 
-            Tone: ${tone}. 
-            Keep it short (under 40 words).`;
-            
-            const userPrompt = `Write a ${tone} wedding wish for Niranjan and Shraddha from ${name}, who is their ${relationship}.`;
-
-            const wish = await callGeminiAPI(userPrompt, systemPrompt);
-            textArea.value = wish;
-            
-            // Visual feedback
-            textArea.classList.add('ring-2', 'ring-indigo-500');
-            setTimeout(() => textArea.classList.remove('ring-2', 'ring-indigo-500'), 1000);
-
-            btn.innerHTML = '<span>✨ Regenerate</span>';
-            btn.disabled = false;
-        }
 
         async function submitWishToDB() {
             const name = document.getElementById('guestName').value;
@@ -1424,60 +1310,6 @@
         }
 
         function closeLogModal() { document.getElementById('logModal').style.display = 'none'; }
-
-        function toggleChat() {
-            const chatWindow = document.getElementById('chatWindow');
-            chatWindow.style.display = (chatWindow.style.display === 'flex') ? 'none' : 'flex';
-        }
-
-        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const messages = document.getElementById('chatMessages');
-            const typing = document.getElementById('typingIndicator');
-            const text = input.value.trim();
-            if (!text) return;
-
-            appendMessage(text, 'user');
-            input.value = '';
-            typing.style.display = 'block';
-            messages.scrollTop = messages.scrollHeight;
-
-            const systemContext = `
-                You are a 'Local Buddy' wedding assistant for Niranjan and Shraddha's wedding in Pune.
-                
-                **PERSONA:**
-                - You speak primarily in English but sprinkle in *occasional* Hindi and Marathi (Puneri style).
-                - Use words like: "Arre", "Bhaau" (Brother), "Mast" (Great), "Ek Number" (Awesome), "Jevlis Ka?" (Did you eat?), "Khup Chan" (Very nice).
-                - **IMPORTANT:** Do NOT use slang in every single sentence. Use it naturally and sparingly to avoid sounding repetitive or robotic.
-                - Tone: Friendly, enthusiastic, informal but helpful.
-                - Be a true Puneri friend, but keep it balanced!
-
-                **WEDDING DETAILS:**
-                - Dates: March 6th and 7th, 2026.
-                - Location: GMK Banquets and Lawns, Ravet.
-                - Schedule: March 6th: Haldi (4pm), Sangeet (7pm). March 7th: Rituals (7am), Varmala (11am).
-                - Dress Code: Haldi (Yellow), Sangeet (Indo-Western), Wedding (Traditional/Peshwai).
-
-                **EXAMPLE RESPONSES:**
-                - User: "Where is the wedding?" -> AI: "It's at GMK Banquets in Ravet. Mast location hai! Need directions?"
-                - User: "What should I wear?" -> AI: "For Sangeet, go for an Indo-Western look. And for Haldi, definitely something yellow!"
-            `;
-
-            const response = await callGeminiAPI(text, systemContext);
-            typing.style.display = 'none';
-            appendMessage(response, 'bot');
-        }
-
-        function appendMessage(text, type) {
-            const messages = document.getElementById('chatMessages');
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            div.innerText = text;
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
-        }
 
         // Lightbox
         function openLightbox(img) {
@@ -1567,6 +1399,75 @@
             }
         }
 
+        // --- Flash Strip Logic ---
+        const flashImages = [
+            "https://lh3.googleusercontent.com/d/1gNwzUHjJOgX-_EVbN1z-aO0QjXR2LBWe",
+            "https://lh3.googleusercontent.com/d/1IFkl67fwdgCQ6sKkb0J_FCh5lDi_cls2",
+            "https://lh3.googleusercontent.com/d/1TnLmz1ZNJs0HXXGQOIWRMdI-AMejpJ2h",
+            "https://lh3.googleusercontent.com/d/1WGW57oOM4GUWBeQUULdjBVszjID5QDFV",
+            "https://lh3.googleusercontent.com/d/12SSzAq49ZWEOn6G1Mpmlh1_d2pm5npuX",
+            "https://lh3.googleusercontent.com/d/19CwvO8B9oL9Mk_VzMEFFwUsQrwjEJuMD",
+            "https://lh3.googleusercontent.com/d/1nEupiPrj6Bz1TBXEk1hqPXq3mrkVhV_q",
+            "https://lh3.googleusercontent.com/d/1y3CgTEpLt9rNuZSAhAC0h7tpah4B3uUJ",
+            "https://lh3.googleusercontent.com/d/1s3ctJxvyYEisCcIIHcAUA8NqtjrFBTdg",
+            "https://lh3.googleusercontent.com/d/1bkzFoysFiEKth6iWLMgfMNmg2wH6BKZ3",
+            "https://lh3.googleusercontent.com/d/19Fnej1Q4IF5IYcPE1gfiGLB-_73EBdYF",
+            "https://lh3.googleusercontent.com/d/1jZXBaX6Z0nHkrHuVIbUyCplbZ85W_Kb9",
+            "https://lh3.googleusercontent.com/d/1HR8V5HOSbdMYigJHbyxYLDLsct6jOL-e",
+            "https://lh3.googleusercontent.com/d/1OVgGwzrAMsPMG90IkYNmq1ml_WEGKn7-"
+        ];
+
+        function initFlashStrip() {
+            const container = document.getElementById('flash-strip');
+            if (!container) return;
+
+            const frameCount = 4; // Number of frames in the strip
+            
+            // Create frames
+            for (let i = 0; i < frameCount; i++) {
+                const frame = document.createElement('div');
+                frame.className = 'flash-frame';
+                
+                const img = document.createElement('img');
+                img.className = 'flash-img';
+                // Set initial random image
+                img.src = flashImages[Math.floor(Math.random() * flashImages.length)];
+                // Initially visible
+                img.classList.add('visible');
+                
+                frame.appendChild(img);
+                container.appendChild(frame);
+
+                // Start unique interval for this frame
+                // Random start delay between 0-5s, repeat every 6-10s
+                setTimeout(() => {
+                    setInterval(() => {
+                        swapImage(img);
+                    }, 6000 + Math.random() * 4000); 
+                }, Math.random() * 5000);
+            }
+        }
+
+        function swapImage(imgElement) {
+            // Fade out
+            imgElement.classList.remove('visible');
+            
+            setTimeout(() => {
+                // Change source while invisible
+                let newSrc = flashImages[Math.floor(Math.random() * flashImages.length)];
+                // Avoid same image if possible (simple check)
+                while (newSrc === imgElement.src && flashImages.length > 1) {
+                    newSrc = flashImages[Math.floor(Math.random() * flashImages.length)];
+                }
+                imgElement.src = newSrc;
+                
+                // Fade in
+                imgElement.onload = () => {
+                    imgElement.classList.add('visible');
+                };
+            }, 2000); // Wait for fade out transition (2s)
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const observerOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
             const observer = new IntersectionObserver((entries) => {
@@ -1583,6 +1484,7 @@
             document.querySelectorAll('.trigger-slide').forEach(el => observer.observe(el));
             
             initWishRotation();
+            initFlashStrip(); // Initialize the new strip
             startCountdown(); // Start the countdown
         });
 
