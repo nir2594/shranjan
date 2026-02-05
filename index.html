@@ -90,8 +90,8 @@ const firebaseConfig = {
                 app = initializeApp(firebaseConfig);
                 useInternal = true;
                 console.log("Using Canvas Preview Firebase");
-            } else if (yourFirebaseConfig.apiKey) {
-                app = initializeApp(yourFirebaseConfig);
+            } else if (firebaseConfig.apiKey) {
+                app = initializeApp(firebaseConfig);
                 console.log("Using YOUR Personal Firebase (Shranjan Project)");
             } else {
                 console.warn("No Firebase configuration found.");
@@ -160,12 +160,20 @@ const firebaseConfig = {
         }
 
         window.saveWishToFirestore = async (name, relationship, text) => {
-            // If offline or setup failed, save locally
+            // Wait briefly for auth/collection bootstrap so wishes are saved to Firebase whenever possible.
+            if (!offlineMode && (!wishesCollection || !currentUser)) {
+                for (let attempt = 0; attempt < 10; attempt++) {
+                    await new Promise((resolve) => setTimeout(resolve, 250));
+                    if (wishesCollection && currentUser) break;
+                }
+            }
+
+            // If offline or setup failed, save locally.
             if (!wishesCollection || offlineMode || !currentUser) {
                 console.log("Saving locally (Offline Mode)");
                 localWishPool.unshift({ name, relationship, text });
                 if (window.updateUIWithWishes) window.updateUIWithWishes();
-                return true; 
+                return true;
             }
 
             try {
@@ -176,7 +184,7 @@ const firebaseConfig = {
                 // Fallback local save
                 localWishPool.unshift({ name, relationship, text });
                 if (window.updateUIWithWishes) window.updateUIWithWishes();
-                return true; 
+                return true;
             }
         };
 
@@ -1223,11 +1231,15 @@ const firebaseConfig = {
 
     <!-- Scripts -->
     <script>
-        // --- API Keys Configured Here ---
-        // ⚠️ NOTE: The specific key you provided ("AIza...B3LQ") returned a 403 Error (Referrer Blocked).
-        // This means it is restricted to specific domains and cannot run on this preview site.
-        // I have reverted to the system key ("") to ensure the Chatbot works immediately.
-        const apiKey = ""; 
+        // --- Local "AI-like" engine (No external model/API required) ---
+        // This keeps the assistant responsive even offline and avoids API billing/configuration.
+        const weddingKnowledge = {
+            venue: "GMK Banquets and Lawns, Ravet, Pune",
+            dates: "March 6th and 7th, 2026",
+            events: "March 6: Haldi (4 PM), Sangeet (7 PM). March 7: Vedic Rituals (7 AM), Mangalashtak & Varmala (11 AM).",
+            dress: "Haldi: Yellow. Sangeet: Indo-Western glam. Wedding: Royal Traditional.",
+            directions: "Use the 'Get Directions' button in the venue section to open Google Maps."
+        };
         
         window.addEventListener('scroll', () => {
             const heroImage = document.getElementById('hero-image');
@@ -1240,39 +1252,63 @@ const firebaseConfig = {
             }
         });
 
-        async function callGeminiAPI(userPrompt, systemInstruction) {
-            // Check if we are using the system key or a custom one
-            const keyToUse = apiKey; 
-            
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${keyToUse}`;
-            const payload = {
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: systemInstruction }] }
+        function chooseRandom(list) {
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function generateWishLocally({ name, relationship, tone }) {
+            const toneTemplates = {
+                'Heartfelt & Emotional': [
+                    `Badhai ho ${name}! Watching you and Shraddha begin this chapter is truly beautiful. May your home always stay full of laughter, peace, and endless love.`,
+                    `${name}, many many congratulations to you both! Such a pure match. Wishing you a lifetime of warmth, companionship, and joy together.`
+                ],
+                'Funny & Witty': [
+                    `Arre ${name}, finally! ${relationship || 'Friend'} reporting: this pair is ek number. May your arguments stay short and honeymoon photos stay unlimited!`,
+                    `${name}, badhai ho! Marriage unlocked: shared passwords, shared snacks, shared remote fights. But honestly, you two are made for each other.`
+                ],
+                'Short & Sweet': [
+                    `Big congratulations ${name}! Wishing you and Shraddha a lifetime of love, laughter, and khup chan memories.`,
+                    `${name}, so happy for you both. Stay blessed, stay smiling, stay in love forever!`
+                ],
+                'Poetic & Traditional': [
+                    `May every sunrise bless your bond, and every prayer protect your journey. Badhai ho ${name}, to a divine beginning with Shraddha.`,
+                    `Two hearts, one promise, one sacred path. ${name}, wishing you both sukh, samruddhi, and eternal togetherness.`
+                ],
+                'Movie Quote Style': [
+                    `${name}, picture abhi shaadi se shuru hui hai! Hero-heroine dono blockbuster. Wishing you both a superhit forever with full romance and zero drama.`,
+                    `Bade bade weddings mein aisi jodi chhoti baat nahi hoti, boss! Congrats ${name}, you two are pure filmy perfection.`
+                ]
             };
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    const errorDetails = await response.text();
-                    console.error("❌ Gemini API Error:", response.status, errorDetails);
-                    
-                    if (response.status === 403) {
-                        return "⚠️ (Error) The API Key is blocked by security settings (Referrer Restriction). Please use an unrestricted key or the default system key.";
-                    }
-                    throw new Error(`API Error: ${response.status}`);
-                }
+            const selected = toneTemplates[tone] || toneTemplates['Short & Sweet'];
+            return chooseRandom(selected);
+        }
 
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
-            } catch (error) {
-                console.error("Gemini Failure:", error);
-                return "✨ (Offline) The AI assistant is currently taking a nap. You can still write your wish manually!"; 
+        function answerWeddingQueryLocally(userText) {
+            const text = userText.toLowerCase();
+
+            const intents = [
+                { keys: ['where', 'venue', 'location', 'address'], reply: `It's at ${weddingKnowledge.venue}. Mast location!` },
+                { keys: ['date', 'when', 'day', 'days'], reply: `Wedding celebrations are on ${weddingKnowledge.dates}.` },
+                { keys: ['schedule', 'itinerary', 'timing', 'time', 'event'], reply: `Here’s the schedule: ${weddingKnowledge.events}` },
+                { keys: ['dress', 'wear', 'outfit', 'code'], reply: `Dress code guide: ${weddingKnowledge.dress}` },
+                { keys: ['direction', 'map', 'reach', 'uber', 'travel'], reply: `${weddingKnowledge.directions}` },
+                { keys: ['haldi'], reply: `Haldi is on March 6th at 4 PM. Go bright yellow/mustard and get ready for fun!` },
+                { keys: ['sangeet'], reply: `Sangeet starts at 7 PM on March 6th. Indo-western glam look will be perfect.` },
+                { keys: ['ritual', 'vedic'], reply: `Vedic rituals begin at 7 AM on March 7th. Traditional attire is ideal.` },
+                { keys: ['varmala', 'mangalashtak', 'wedding'], reply: `Mangalashtak & Varmala are at 11 AM on March 7th. Royal traditional looks will shine.` }
+            ];
+
+            for (const intent of intents) {
+                if (intent.keys.some((k) => text.includes(k))) return intent.reply;
             }
+
+            const fallbacks = [
+                "Arre, I can help with venue, timings, dress code, and directions. Ask me anything wedding-related!",
+                "Bhaau, try asking me about events, location, outfit ideas, or travel details — I’ve got you.",
+                "I may be local-mode AI, but I know all wedding details. Ask about date, venue, or dress code."
+            ];
+            return chooseRandom(fallbacks);
         }
 
         function toggleAITools() {
@@ -1301,15 +1337,8 @@ const firebaseConfig = {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Writing...';
             btn.disabled = true;
 
-            const systemPrompt = `You are a warm, funny, and 'Desi' wedding guest at an Indian wedding. 
-            Mix English with a little Hindi/Marathi slang like 'Arre', 'Badhai Ho', 'Mast', 'Ek Number'. 
-            Context: Niranjan & Shraddha's wedding in Pune. dont put any astrix in between words.
-            Tone: ${tone}. 
-            Keep it short (under 40 words).`;
-            
-            const userPrompt = `Write a ${tone} wedding wish for Niranjan and Shraddha from ${name}, who is their ${relationship}.`;
-
-            const wish = await callGeminiAPI(userPrompt, systemPrompt);
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const wish = generateWishLocally({ name, relationship, tone });
             textArea.value = wish;
             
             // Visual feedback
@@ -1391,28 +1420,8 @@ const firebaseConfig = {
             typing.style.display = 'block';
             messages.scrollTop = messages.scrollHeight;
 
-            const systemContext = `
-                You are a 'Local Buddy' wedding assistant for Niranjan and Shraddha's wedding in Pune.
-                
-                **PERSONA:**
-                - You speak primarily in English but sprinkle in *occasional* Hindi and Marathi (Puneri style).
-                - Use words like: "Arre", "Bhaau" (Brother), "Mast" (Great), "Ek Number" (Awesome), "Jevlis Ka?" (Did you eat?), "Khup Chan" (Very nice).
-                - **IMPORTANT:** Do NOT use slang in every single sentence. Use it naturally and sparingly to avoid sounding repetitive or robotic.
-                - Tone: Friendly, enthusiastic, informal but helpful.
-                - Be a true Puneri friend, but keep it balanced!
-
-                **WEDDING DETAILS:**
-                - Dates: March 6th and 7th, 2026.
-                - Location: GMK Banquets and Lawns, Ravet.
-                - Schedule: March 6th: Haldi (4pm), Sangeet (7pm). March 7th: Rituals (7am), Varmala (11am).
-                - Dress Code: Haldi (Yellow), Sangeet (Indo-Western), Wedding (Traditional/Peshwai).
-
-                **EXAMPLE RESPONSES:**
-                - User: "Where is the wedding?" -> AI: "It's at GMK Banquets in Ravet. Mast location hai! Need directions?"
-                - User: "What should I wear?" -> AI: "For Sangeet, go for an Indo-Western look. And for Haldi, definitely something yellow!"
-            `;
-
-            const response = await callGeminiAPI(text, systemContext);
+            await new Promise((resolve) => setTimeout(resolve, 450));
+            const response = answerWeddingQueryLocally(text);
             typing.style.display = 'none';
             appendMessage(response, 'bot');
         }
