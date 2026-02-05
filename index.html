@@ -1417,11 +1417,42 @@
             "https://lh3.googleusercontent.com/d/1OVgGwzrAMsPMG90IkYNmq1ml_WEGKn7-"
         ];
 
+        function getVisibleUrls() {
+            const images = document.querySelectorAll('.flash-img');
+            const urls = new Set();
+            images.forEach(img => {
+                if(img.src) urls.add(img.src);
+            });
+            return urls;
+        }
+
+        function getNextRandomImage(currentSrc) {
+            const visible = getVisibleUrls();
+            // Candidates are images NOT currently visible on screen
+            const candidates = flashImages.filter(url => !visible.has(url));
+            
+            // If we have candidates, pick one
+            if (candidates.length > 0) {
+                return candidates[Math.floor(Math.random() * candidates.length)];
+            }
+            
+            // Fallback: pick any random that isn't the current one 
+            // (Only happens if pool size <= frame count, which isn't the case here)
+            let fallback = flashImages[Math.floor(Math.random() * flashImages.length)];
+            while (fallback === currentSrc && flashImages.length > 1) {
+                fallback = flashImages[Math.floor(Math.random() * flashImages.length)];
+            }
+            return fallback;
+        }
+
         function initFlashStrip() {
             const container = document.getElementById('flash-strip');
             if (!container) return;
 
-            const frameCount = 6; // Number of frames in the strip
+            const frameCount = 6; 
+            
+            // Initial Shuffle to guarantee unique start
+            const starters = [...flashImages].sort(() => 0.5 - Math.random()).slice(0, frameCount);
             
             // Create frames
             for (let i = 0; i < frameCount; i++) {
@@ -1430,16 +1461,14 @@
                 
                 const img = document.createElement('img');
                 img.className = 'flash-img';
-                // Set initial random image
-                img.src = flashImages[Math.floor(Math.random() * flashImages.length)];
-                // Initially visible
+                img.src = starters[i];
                 img.classList.add('visible');
                 
                 frame.appendChild(img);
                 container.appendChild(frame);
 
                 // Start unique interval for this frame
-                // Random start delay between 0-5s, repeat every 6-10s
+                // Random start delay between 0-5s, repeat every 6-10s (slower pace)
                 setTimeout(() => {
                     setInterval(() => {
                         swapImage(img);
@@ -1454,18 +1483,15 @@
             
             setTimeout(() => {
                 // Change source while invisible
-                let newSrc = flashImages[Math.floor(Math.random() * flashImages.length)];
-                // Avoid same image if possible (simple check)
-                while (newSrc === imgElement.src && flashImages.length > 1) {
-                    newSrc = flashImages[Math.floor(Math.random() * flashImages.length)];
-                }
+                // Use smart picker to avoid duplicates
+                const newSrc = getNextRandomImage(imgElement.src);
                 imgElement.src = newSrc;
                 
                 // Fade in
                 imgElement.onload = () => {
                     imgElement.classList.add('visible');
                 };
-            }, 2000); // Wait for fade out transition (2s)
+            }, 2000); // Wait for smoother fade out transition (2s)
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1516,3 +1542,5 @@
     </script>
 </body>
 </html>
+
+
