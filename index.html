@@ -1327,8 +1327,12 @@ const firebaseConfig = {
                     const errorDetails = await response.text();
                     console.error("❌ Gemini API Error:", response.status, errorDetails);
                     
-                    if (response.status === 403) {
-                        return "⚠️ (Error) The API Key is blocked by security settings (Referrer Restriction). Please use an unrestricted key or the default system key.";
+                   if (!response.ok) {
+    const errText = await response.text();
+    console.error("🔥 Firebase Proxy Error:", response.status, errText);
+    throw new Error("Function call failed");
+}
+
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
