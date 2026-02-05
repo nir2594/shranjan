@@ -50,15 +50,20 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        /// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA4uELpLYLVPEAZi899xdDyTcgYOmlVwuo",
-  authDomain: "shranjan-feb.firebaseapp.com",
-  projectId: "shranjan-feb",
-  storageBucket: "shranjan-feb.firebasestorage.app",
-  messagingSenderId: "127813832816",
-  appId: "1:127813832816:web:90961531ef775c4768e4b5",
-  measurementId: "G-PX8Y92YNJR"
+
+  apiKey: "AIzaSyBU80iwakCAbeevJfTBU3PbGrKjB7O0vJc",
+
+  authDomain: "shranjan-updated.firebaseapp.com",
+
+  projectId: "shranjan-updated",
+
+  storageBucket: "shranjan-updated.firebasestorage.app",
+
+  messagingSenderId: "882280319909",
+
+  appId: "1:882280319909:web:eec99f7a938461de6af64c"
 };
 
         // --- LOGIC TO SWITCH BETWEEN PREVIEW AND YOUR DATABASE ---
@@ -394,49 +399,6 @@ const firebaseConfig = {
     </style>
 </head>
 <body class="font-sans text-gray-700 bg-stone-50" id="top">
-
-    <!-- Navigation -->
-    <nav class="fixed w-full z-50 transition-all duration-300 bg-transparent text-white" id="navbar">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <!-- Logo -->
-                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="window.scrollTo(0,0)">
-                    <span class="font-script text-3xl font-bold text-wedding-gold">N & S</span>
-                </div>
-                
-                <!-- Desktop Menu -->
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-8">
-                        <a href="#top" class="hover:text-wedding-gold px-3 py-2 rounded-md text-sm font-medium uppercase tracking-widest transition">Home</a>
-                        <a href="#couple" class="hover:text-wedding-gold px-3 py-2 rounded-md text-sm font-medium uppercase tracking-widest transition">Couple</a>
-                        <a href="#events" class="hover:text-wedding-gold px-3 py-2 rounded-md text-sm font-medium uppercase tracking-widest transition">Events</a>
-                        <a href="#gallery" class="hover:text-wedding-gold px-3 py-2 rounded-md text-sm font-medium uppercase tracking-widest transition">Gallery</a>
-                        <a href="#guestbook" class="hover:text-wedding-gold px-3 py-2 rounded-md text-sm font-medium uppercase tracking-widest transition">Wishes</a>
-                        <a href="#location" class="hover:text-wedding-gold px-3 py-2 rounded-md text-sm font-medium uppercase tracking-widest transition">Venue</a>
-                    </div>
-                </div>
-
-                <!-- Mobile Menu Button -->
-                <div class="-mr-2 flex md:hidden">
-                    <button onclick="toggleMobileMenu()" type="button" class="inline-flex items-center justify-center p-2 rounded-md hover:text-wedding-gold focus:outline-none">
-                        <i class="fas fa-bars text-2xl"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile Menu Panel -->
-        <div class="hidden md:hidden bg-white/95 backdrop-blur-md shadow-lg text-wedding-dark absolute w-full" id="mobile-menu">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 text-center">
-                <a href="#top" onclick="toggleMobileMenu()" class="block hover:text-wedding-gold px-3 py-2 rounded-md text-base font-medium">Home</a>
-                <a href="#couple" onclick="toggleMobileMenu()" class="block hover:text-wedding-gold px-3 py-2 rounded-md text-base font-medium">Couple</a>
-                <a href="#events" onclick="toggleMobileMenu()" class="block hover:text-wedding-gold px-3 py-2 rounded-md text-base font-medium">Events</a>
-                <a href="#gallery" onclick="toggleMobileMenu()" class="block hover:text-wedding-gold px-3 py-2 rounded-md text-base font-medium">Gallery</a>
-                <a href="#guestbook" onclick="toggleMobileMenu()" class="block hover:text-wedding-gold px-3 py-2 rounded-md text-base font-medium">Wishes</a>
-                <a href="#location" onclick="toggleMobileMenu()" class="block hover:text-wedding-gold px-3 py-2 rounded-md text-base font-medium">Venue</a>
-            </div>
-        </div>
-    </nav>
 
     <!-- 1. Hero Section -->
     <header class="relative h-screen w-full flex items-center justify-center overflow-hidden">
@@ -1098,7 +1060,7 @@ const firebaseConfig = {
     </section>
 
     <!-- 8. Guestbook Section (Moved) -->
-    <section id="guestbook" class="py-12 md:py-20 bg-wedding-gold bg-opacity-10">
+    <section class="py-12 md:py-20 bg-wedding-gold bg-opacity-10">
         <div class="container mx-auto px-4 text-center">
             <div class="fade-in-section max-w-4xl mx-auto mb-8">
                 <i class="fas fa-magic text-wedding-gold text-2xl mb-2"></i>
@@ -1279,22 +1241,6 @@ const firebaseConfig = {
         // I have reverted to the system key ("") to ensure the Chatbot works immediately.
         const apiKey = ""; 
         
-        // Navbar Scroll Effect & Mobile Menu
-        window.addEventListener('scroll', () => {
-            const nav = document.getElementById('navbar');
-            if (window.scrollY > 50) {
-                nav.classList.add('bg-white', 'shadow-md', 'text-wedding-dark');
-                nav.classList.remove('bg-transparent', 'text-white');
-            } else {
-                nav.classList.remove('bg-white', 'shadow-md', 'text-wedding-dark');
-                nav.classList.add('bg-transparent', 'text-white');
-            }
-        });
-
-        function toggleMobileMenu() {
-            document.getElementById('mobile-menu').classList.toggle('hidden');
-        }
-
         window.addEventListener('scroll', () => {
             const heroImage = document.getElementById('hero-image');
             if (heroImage) {
@@ -1327,12 +1273,8 @@ const firebaseConfig = {
                     const errorDetails = await response.text();
                     console.error("❌ Gemini API Error:", response.status, errorDetails);
                     
-                   if (!response.ok) {
-    const errText = await response.text();
-    console.error("🔥 Firebase Proxy Error:", response.status, errText);
-    throw new Error("Function call failed");
-}
-
+                    if (response.status === 403) {
+                        return "⚠️ (Error) The API Key is blocked by security settings (Referrer Restriction). Please use an unrestricted key or the default system key.";
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -1373,7 +1315,7 @@ const firebaseConfig = {
 
             const systemPrompt = `You are a warm, funny, and 'Desi' wedding guest at an Indian wedding. 
             Mix English with a little Hindi/Marathi slang like 'Arre', 'Badhai Ho', 'Mast', 'Ek Number'. 
-            Context: Niranjan & Shraddha's wedding in Pune. 
+            Context: Niranjan & Shraddha's wedding in Pune. dont put any astrix in between words.
             Tone: ${tone}. 
             Keep it short (under 40 words).`;
             
