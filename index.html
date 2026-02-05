@@ -845,10 +845,10 @@
 
                             <!-- Username Overlay -->
                             <div class="absolute bottom-6 inset-x-0 text-center text-white z-10 p-4">
-                                <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30 mb-2 shadow-lg">
+                                <a href="https://www.instagram.com/shranjan.stories" target="_blank" class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30 mb-2 shadow-lg hover:bg-white/30 transition">
                                     <i class="fab fa-instagram text-pink-400"></i>
                                     <span class="font-semibold tracking-wide text-sm">@shranjan.stories</span>
-                                </div>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -869,7 +869,7 @@
                     
                     <h2 class="font-serif text-4xl md:text-6xl text-wedding-dark mb-6 leading-tight">
                         Follow <br>
-                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500">@shranjan.stories</span>
+                        <a href="https://www.instagram.com/shranjan.stories" target="_blank" class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-80 transition">@shranjan.stories</a>
                     </h2>
                     
                     <p class="text-base md:text-lg text-gray-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0">
@@ -1417,43 +1417,28 @@
             "https://lh3.googleusercontent.com/d/1OVgGwzrAMsPMG90IkYNmq1ml_WEGKn7-"
         ];
 
-        function getVisibleUrls() {
-            const images = document.querySelectorAll('.flash-img');
-            const urls = new Set();
-            images.forEach(img => {
-                if(img.src) urls.add(img.src);
-            });
-            return urls;
-        }
-
-        function getNextRandomImage(currentSrc) {
-            const visible = getVisibleUrls();
-            // Candidates are images NOT currently visible on screen
-            const candidates = flashImages.filter(url => !visible.has(url));
-            
-            // If we have candidates, pick one
-            if (candidates.length > 0) {
-                return candidates[Math.floor(Math.random() * candidates.length)];
-            }
-            
-            // Fallback: pick any random that isn't the current one 
-            // (Only happens if pool size <= frame count, which isn't the case here)
-            let fallback = flashImages[Math.floor(Math.random() * flashImages.length)];
-            while (fallback === currentSrc && flashImages.length > 1) {
-                fallback = flashImages[Math.floor(Math.random() * flashImages.length)];
-            }
-            return fallback;
-        }
+        // TRACKING: Keep track of which image index is currently in which frame
+        // -1 means empty or initializing
+        let activeIndices = []; 
 
         function initFlashStrip() {
             const container = document.getElementById('flash-strip');
             if (!container) return;
 
             const frameCount = 6; 
+            // Initialize tracking array
+            activeIndices = new Array(frameCount).fill(-1);
             
-            // Initial Shuffle to guarantee unique start
-            const starters = [...flashImages].sort(() => 0.5 - Math.random()).slice(0, frameCount);
+            // Initial Fill: Ensure all 6 are unique
+            // Create a shuffled array of indices [0, 1, ... 13]
+            let allIndices = Array.from({length: flashImages.length}, (_, i) => i);
+            allIndices.sort(() => Math.random() - 0.5);
             
+            // Assign first 6 unique images
+            for(let i=0; i<frameCount; i++) {
+                activeIndices[i] = allIndices[i];
+            }
+
             // Create frames
             for (let i = 0; i < frameCount; i++) {
                 const frame = document.createElement('div');
@@ -1461,31 +1446,49 @@
                 
                 const img = document.createElement('img');
                 img.className = 'flash-img';
-                img.src = starters[i];
+                // Use the pre-assigned unique index
+                img.src = flashImages[activeIndices[i]];
                 img.classList.add('visible');
+                
+                // Add click to open in lightbox (optional but nice)
+                img.onclick = () => openLightbox(img);
                 
                 frame.appendChild(img);
                 container.appendChild(frame);
 
                 // Start unique interval for this frame
-                // Random start delay between 0-5s, repeat every 6-10s (slower pace)
+                // Random start delay between 0-5s, repeat every 6-10s
                 setTimeout(() => {
                     setInterval(() => {
-                        swapImage(img);
+                        swapImage(img, i);
                     }, 6000 + Math.random() * 4000); 
                 }, Math.random() * 5000);
             }
         }
 
-        function swapImage(imgElement) {
+        function swapImage(imgElement, frameIndex) {
             // Fade out
             imgElement.classList.remove('visible');
             
             setTimeout(() => {
-                // Change source while invisible
-                // Use smart picker to avoid duplicates
-                const newSrc = getNextRandomImage(imgElement.src);
-                imgElement.src = newSrc;
+                // Pick a new index that is NOT currently active in ANY frame
+                let newIndex;
+                let attempts = 0;
+                
+                // Try to find a unique one
+                do {
+                    newIndex = Math.floor(Math.random() * flashImages.length);
+                    attempts++;
+                } while (activeIndices.includes(newIndex) && attempts < 50);
+                
+                // If we failed to find a unique one (unlikely with 14 images & 6 frames), just take whatever
+                // But normally this loop guarantees uniqueness
+                
+                // Update tracking
+                activeIndices[frameIndex] = newIndex;
+                
+                // Set source
+                imgElement.src = flashImages[newIndex];
                 
                 // Fade in
                 imgElement.onload = () => {
@@ -1541,6 +1544,4 @@
         }
     </script>
 </body>
-</html>
-
-
+    </html>
